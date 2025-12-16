@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# matematica
 
-## Getting Started
+Despre aplicație
+-----------------
 
-First, run the development server:
+`matematica` este un loc de joacă educațional pentru copii: exerciții scurte și interactive pentru antrenarea calculului mental (adunare, scădere, înmulțire). Scopul este să ofere sesiuni de practică rapide, utile în clasă sau acasă.
+
+- Fiecare "test fulger" generează 5 întrebări care acoperă variate niveluri de dificultate.
+- Interfața permite selectarea unei limite pentru numere (1..10 sau 11..20) potrivită pentru clasa elevului.
+- Generatorul de scădere evită rezultate negative și încearcă să ofere probleme variate (de ex. `x - sel` și `sel - y`) în funcție de valoarea selectată.
+
+Cum folosești aplicația
+-----------------------
+
+1. Deschide pagina principală și alege operația: adunare, scădere sau înmulțire.
+2. Selectează limita numerelor (buton 1..10 sau 11..20 pentru clasa a 2-a).
+3. Apasă "Începe testul" pentru a primi 5 întrebări; răspunde și treci la următoarea.
+4. La final vezi scorul și istoricul răspunsurilor.
+
+Beneficii pentru elevi
+---------------------
+
+- Sesiuni scurte care păstrează concentrarea.
+- Probleme variate pentru consolidarea abilităților.
+- Feedback imediat (corect/greșit) și cronometru pentru măsurarea progresului.
+
+Pentru dezvoltatori
+-------------------
+
+Această secțiune conține informații tehnice despre proiect și cum să rulezi aplicația local.
+
+Instalare și rulare locală
+--------------------------
+
+1. Instalează dependențele:
+
+```bash
+npm install
+```
+
+2. Rulează în modul dezvoltare:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Build pentru producție și pornire:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm run start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Structura proiectului
+---------------------
 
-## Learn More
+- `app/` — pagini Next.js (App Router)
+- `app/components/` — componente UI reutilizabile: `Calculator.tsx`, `QuickTest.tsx`, `TestFulger.tsx`, `Table.tsx` etc.
+- `public/` — resurse statice (imagini, favicon, etc.)
 
-To learn more about Next.js, take a look at the following resources:
+Detalii importante de implementare
+---------------------------------
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `TestFulger.tsx` generează întrebările la start: 5 întrebări deterministe/aleatorii, evitând rezultate negative la scădere.
+- Pentru scădere, logica preferă distribuții diferite în funcție de valoarea selectată (ex: mai multe întrebări de tip `x - sel` pentru valori mici, evită `x - sel` pentru valori mari) pentru a păstra sensul problemei.
+- Componentele client folosesc `"use client"` când este necesar și păstrează starea locală în componentă.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Contribuții
+-----------
 
-## Deploy on Vercel
+- Deschide issue-uri pentru propuneri sau bug-uri.
+- Trimite pull request-uri mici, testabile și documentate.
+- Rulează `npm run lint` înainte de commit pentru a menține stilul.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Descriere sugerată pentru GitHub
+--------------------------------
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+"Loc de joacă matematic interactiv pentru copii — exerciții rapide și teste mini." 
+
+Topic-uri recomandate
+---------------------
+
+`math`, `education`, `kids`, `arithmetic`, `learning`
+
+Licență
+-------
+
+Proiectul este licențiat sub MIT License. Vezi fișierul `LICENSE` pentru textul complet și condițiile de utilizare.
+
+
