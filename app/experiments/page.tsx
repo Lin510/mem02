@@ -190,7 +190,7 @@ function TwentyBulletsAxis({
 export default function ExperimentsPage() {
   const [operation, setOperation] = useState<"add" | "sub" | "mul">("add");
   const [max, setMax] = useState<number>(10);
-  const [a, setA] = useState<number>(10);
+  const [a, setA] = useState<number>(1);
 
   const rows = useMemo(() => Array.from({ length: max }, (_, i) => i + 1), [max]);
   const symbol = opSymbols[operation];

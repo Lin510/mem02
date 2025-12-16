@@ -20,154 +20,173 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
   const [input, setInput] = useState<string>("");
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [selectedMax, setSelectedMax] = useState<number | null>(null);
-  const [userSelected, setUserSelected] = useState<boolean>(false);
+  
 
   useEffect(() => {
     reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grade, operation, maxFactor]);
 
-  // keep local selector in sync if parent prop changes
-  // don't preselect maxFactor — keep selector empty until user picks; reset on prop changes
-  useEffect(() => {
-    const maxAvailable = Math.max(1, Math.floor(maxFactor));
-    setSelectedMax(randInt(1, maxAvailable));
-    setUserSelected(false);
-  }, [grade, maxFactor]);
-
+  // Helpers and core logic
   function randInt(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  function buildQuestions(selectedOverride?: number) {
-    const qs: QA[] = [];
+  function buildQuestions(sel: number) {
     const count = 5;
+    const qs: QA[] = [];
     const seen = new Set<string>();
-    let attempts = 0;
+    const pageMax = Math.max(1, Math.floor(maxFactor));
+    const selVal = Math.max(1, Math.floor(sel));
 
-    // determine which selected value to use: override > explicit selected > maxFactor fallback
-    const sel = typeof selectedOverride === "number" ? selectedOverride : (selectedMax ?? maxFactor);
+    if (operation === "sub") {
+      // Pools
+      const leftPool: number[] = selVal > 1 ? Array.from({ length: selVal - 1 }, (_, i) => i + 1) : [];
+      let rightPool: number[] = pageMax > selVal ? Array.from({ length: pageMax - selVal }, (_, i) => selVal + 1 + i) : [];
 
-    while (qs.length < count && attempts < 500) {
-      attempts++;
-      let a: number;
-      let b: number;
+      // For small sel prefer larger right values
+      if (selVal <= 10) {
+        const start = Math.max(10, selVal + 1);
+        if (pageMax >= start) rightPool = Array.from({ length: pageMax - start + 1 }, (_, i) => start + i);
+      }
 
-      if (operation === "add") {
-        // fix one addend to the selected value (sel) and vary the other.
-        const pageMax = Math.max(1, Math.floor(maxFactor));
-        const selVal = Math.max(1, Math.floor(sel));
+      // For large sel avoid right-side questions
+      if (selVal >= 16) rightPool = [];
 
-        // For grade 2 prefer 4 additions where the other addend (a) is >10 and 1 where it's <=10
-        if (grade === 2 && pageMax >= 11) {
-          const highTarget = 4;
-          const highCount = qs.filter((q) => q.a > 10).length;
-          if (highCount < highTarget && qs.length < count - 1) {
-            // pick a in the high range
-            a = randInt(11, pageMax);
-          } else if (qs.length === count - 1) {
-            // final question: prefer low (<=10)
-            const maxLow = Math.min(10, pageMax);
-            a = maxLow >= 1 ? randInt(1, maxLow) : randInt(1, pageMax);
-          } else {
-            // fill remaining
-            a = randInt(11, pageMax);
-          }
-          b = selVal;
-        } else {
-          // class 0 or general case: a random in 1..pageMax
-          a = randInt(1, pageMax);
-          b = selVal;
+      const pickRandomFromArray = (arr: number[], n: number) => {
+        const copy = arr.slice();
+        const res: number[] = [];
+        for (let i = 0; i < n && copy.length > 0; i++) {
+          const idx = randInt(0, copy.length - 1);
+          res.push(copy.splice(idx, 1)[0]);
         }
-      } else if (operation === "sub") {
-        // subtraction: fix the subtrahend to the selected value (sel) and vary the minuend (a > b).
-        // For grade 2 prefer 4 questions with minuend > 10 and 1 with minuend <= 10.
-        const pageMax = Math.max(1, Math.floor(maxFactor));
-        const selVal = Math.max(1, Math.floor(sel));
+        return res;
+      };
 
-        const pickAinRange = (minR: number, maxR: number) => {
-          if (minR > maxR) return null;
-          return randInt(minR, maxR);
-        };
+      let wantLeft = 3;
+      let wantRight = 2;
+      if (selVal <= 10) {
+        wantLeft = 1;
+        wantRight = 4;
+      } else if (selVal >= 16) {
+        wantLeft = 4;
+        wantRight = 1;
+      }
 
-        if (grade === 2 && pageMax >= 11) {
-          const highTarget = 4;
-          const highCount = qs.filter((q) => q.a > 10).length;
+      const leftAvailable = leftPool.filter((y) => !seen.has(`${selVal},${y}`));
+      const rightAvailable = rightPool.filter((x) => !seen.has(`${x},${selVal}`));
 
-          // decide whether this slot should be high (>10) or low (<=10)
-          const wantHigh = highCount < highTarget && qs.length < count - 1;
+      const chosenLeft = pickRandomFromArray(leftAvailable, wantLeft);
+      const chosenRight = pickRandomFromArray(rightAvailable, wantRight);
 
-          if (wantHigh) {
-            // pick a > 10 and a > selVal
-            const minA = Math.max(11, selVal + 1);
-            const aCandidate = pickAinRange(minA, pageMax);
-            if (aCandidate === null) {
-              // fallback: try any a > selVal
-              const aAny = pickAinRange(selVal + 1, pageMax);
-              a = aAny ?? selVal; // if null, fallback to selVal
-            } else {
-              a = aCandidate;
-            }
-            b = selVal;
-          } else if (qs.length === count - 1) {
-            // final slot: prefer low (<=10) but still a > selVal
-            const maxLow = Math.min(10, pageMax);
-            const minA = Math.max(2, selVal + 1);
-            const aCandidate = pickAinRange(minA, maxLow);
-            if (aCandidate === null) {
-              const aAny = pickAinRange(selVal + 1, pageMax);
-              a = aAny ?? selVal;
-            } else {
-              a = aCandidate;
-            }
-            b = selVal;
-          } else {
-            // fill remaining: try high first, else normal
-            const minA = Math.max(11, selVal + 1);
-            const aCandidate = pickAinRange(minA, pageMax) ?? pickAinRange(selVal + 1, pageMax) ?? selVal;
-            a = aCandidate;
-            b = selVal;
-          }
-        } else {
-          // general case: choose a > selVal up to sel-based limit
-          const aCandidate = pickAinRange(selVal + 1, Math.max(selVal + 1, pageMax));
-          a = aCandidate ?? selVal;
-          b = selVal;
+      // Add chosen
+      for (const y of chosenLeft) {
+        if (qs.length >= count) break;
+        const key = `${selVal},${y}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          qs.push({ a: selVal, b: y, answer: null, correct: null });
         }
-      } else {
-        // multiplication - one factor equals selectedMax, the other is 1..10 (but not equal to selectedMax)
-        let other = randInt(1, 10);
-        if (other === sel) {
-          // pick again (safe because range 1..10 has at least one other value)
-          other = other === 10 ? randInt(1, 9) : randInt(2, 10);
-          if (other === sel) other = (sel === 10 ? 9 : sel + 1);
-        }
-        if (Math.random() < 0.5) {
-          a = sel;
-          b = other;
-        } else {
-          a = other;
-          b = sel;
+      }
+      for (const x of chosenRight) {
+        if (qs.length >= count) break;
+        const key = `${x},${selVal}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          qs.push({ a: x, b: selVal, answer: null, correct: null });
         }
       }
 
-      const key = operation === "add" || operation === "mul" ? `${Math.min(a, b)},${Math.max(a, b)}` : `${a},${b}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      qs.push({ a, b, answer: null, correct: null });
+      // Fill deterministically from left (sel - y)
+      let yFill = 1;
+      while (qs.length < count && yFill < selVal) {
+        const key = `${selVal},${yFill}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          qs.push({ a: selVal, b: yFill, answer: null, correct: null });
+        }
+        yFill++;
+      }
+
+      // If still short, use larger minuends (x - sel)
+      let xFill = selVal + 1;
+      while (qs.length < count && xFill <= pageMax) {
+        const key = `${xFill},${selVal}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          qs.push({ a: xFill, b: selVal, answer: null, correct: null });
+        }
+        xFill++;
+      }
+
+      // slight shuffle
+      for (let i = qs.length - 1; i > 0; i--) {
+        const j = randInt(0, i);
+        const tmp = qs[i];
+        qs[i] = qs[j];
+        qs[j] = tmp;
+      }
+
+      return qs.slice(0, count);
+    }
+
+    // addition and multiplication: include selected number as one operand
+    if (operation === "add" || operation === "mul") {
+      const maxOther = operation === "mul" ? Math.min(10, Math.max(1, Math.floor(maxFactor))) : Math.max(1, Math.floor(maxFactor));
+      let attempts = 0;
+      while (qs.length < 5 && attempts < 500) {
+        attempts++;
+        let other = randInt(1, maxOther);
+        if (operation === "mul" && other === selVal) {
+          // avoid identical factor repeated; pick another
+          other = other === maxOther ? Math.max(1, other - 1) : other + 1;
+        }
+        let a: number, b: number;
+        if (operation === "add") {
+          // store unordered pair to avoid duplicates
+          a = Math.min(selVal, other);
+          b = Math.max(selVal, other);
+        } else {
+          // multiplication - keep order arbitrary
+          if (Math.random() < 0.5) {
+            a = selVal;
+            b = other;
+          } else {
+            a = other;
+            b = selVal;
+          }
+        }
+        const key = operation === "add" || operation === "mul" ? `${a},${b}` : `${a},${b}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        qs.push({ a, b, answer: null, correct: null });
+      }
+
+      // deterministic fill if needed
+      let otherFill = 1;
+      while (qs.length < 5 && otherFill <= maxOther) {
+        const a = operation === "add" ? Math.min(selVal, otherFill) : (Math.random() < 0.5 ? selVal : otherFill);
+        const b = operation === "add" ? Math.max(selVal, otherFill) : (a === selVal ? otherFill : selVal);
+        const key = `${a},${b}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          qs.push({ a, b, answer: null, correct: null });
+        }
+        otherFill++;
+      }
+
+      return qs.slice(0, 5);
     }
 
     return qs;
   }
 
   function reset() {
-    // do not pre-generate questions — only generate when user starts the test
     setQuestions([]);
     setIndex(0);
     setStartedAt(null);
     setFinishedAt(null);
     setInput("");
-    setUserSelected(false);
     const maxAvailable = Math.max(1, Math.floor(maxFactor));
     setSelectedMax(randInt(1, maxAvailable));
   }
@@ -217,36 +236,33 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
             <div style={{ marginBottom: 12, textAlign: "center" }}>
               <div style={{ marginBottom: 6, fontWeight: 700 }}>{operation === "mul" ? "Limita multiplicatorilor" : operation === "add" ? "Limita termenilor" : "Limita numerelor"}</div>
 
-              {/* grade 0: single row 1..10; grade 2: two rows 1..10 and 11..20 */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-                {/* first row: 1..10 or up to maxFactor if smaller */}
-                  <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: "0 auto" }}>
-                    {Array.from({ length: Math.min(10, Math.max(1, Math.floor(maxFactor))) }).map((_, i) => {
-                      const v = i + 1;
-                      const isSelected = selectedMax === v;
-                      return (
-                        <button
-                          key={v}
-                          onClick={() => {
-                            setSelectedMax(v);
-                            setUserSelected(true);
-                          }}
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 8,
-                            border: isSelected ? "2px solid #222" : "1px solid #bbb",
-                            background: isSelected ? "#222" : "#fff",
-                            color: isSelected ? "#fff" : "#000",
-                            fontWeight: 800,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {v}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: "0 auto" }}>
+                  {Array.from({ length: Math.min(10, Math.max(1, Math.floor(maxFactor))) }).map((_, i) => {
+                    const v = i + 1;
+                    const isSelected = selectedMax === v;
+                    return (
+                      <button
+                        key={v}
+                        onClick={() => {
+                              setSelectedMax(v);
+                            }}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 8,
+                          border: isSelected ? "2px solid #222" : "1px solid #bbb",
+                          background: isSelected ? "#222" : "#fff",
+                          color: isSelected ? "#fff" : "#000",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {v}
+                      </button>
+                    );
+                  })}
+                </div>
 
                 {grade === 2 && maxFactor > 10 && (
                   <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: "0 auto" }}>
@@ -258,7 +274,6 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
                           key={v}
                           onClick={() => {
                             setSelectedMax(v);
-                            setUserSelected(true);
                           }}
                           style={{
                             width: 36,
@@ -306,29 +321,29 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
             {questions[index].a} {operation === "mul" ? "×" : operation === "sub" ? "-" : "+"} {questions[index].b} = ?
           </div>
           <div>
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                inputMode="numeric"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    startIfNeeded();
-                    submitAnswer();
-                  }
-                }}
-                style={{ width: 120, padding: 8, marginRight: 8 }}
-              />
-              <button
-                onClick={() => {
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              inputMode="numeric"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
                   startIfNeeded();
                   submitAnswer();
-                }}
-                style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222", background: "#222", color: "#fff", fontWeight: 700 }}
-              >
-                OK
-              </button>
+                }
+              }}
+              style={{ width: 120, padding: 8, marginRight: 8 }}
+            />
+            <button
+              onClick={() => {
+                startIfNeeded();
+                submitAnswer();
+              }}
+              style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222", background: "#222", color: "#fff", fontWeight: 700 }}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
