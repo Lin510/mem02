@@ -1,13 +1,10 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -22,5 +19,72 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* Utility to make table cells consistent if needed */
+.table-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ddd;
+  border-radius: 0.375rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  background: #ffffff;
+}
+
+/* Experiments page responsive tweaks */
+.experiments {
+  --experiments-right-width: 380px;
+}
+
+.experiments .experiments-grid-header,
+.experiments .experiments-grid-rows {
+  align-items: center;
+}
+
+.experiments .left-node {
+  /* left text already bold; scale for small screens */
+}
+
+.experiments .right-node {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Desktop first: keep two-column layout */
+@media (min-width: 840px) {
+  .experiments .experiments-grid-header,
+  .experiments .experiments-grid-rows {
+    grid-template-columns: minmax(320px, 1fr) var(--experiments-right-width);
+  }
+}
+
+/* Tablet and below: stack into single column for narrow screens */
+@media (max-width: 839px) {
+  .experiments {
+    padding: 18px !important;
+  }
+
+  .experiments .experiments-grid-header,
+  .experiments .experiments-grid-rows {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .experiments .left-node,
+  .experiments .right-node {
+    justify-content: center !important;
+  }
+
+  .experiments .left-node {
+    font-size: 1.25em; /* slightly smaller than desktop 1.5em */
+  }
+
+  .experiments svg {
+    width: 120px !important;
+    height: 120px !important;
+  }
 }
