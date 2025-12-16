@@ -24,6 +24,11 @@ Beneficii pentru elevi
 - Probleme variate pentru consolidarea abilităților.
 - Feedback imediat (corect/greșit) și cronometru pentru măsurarea progresului.
 
+Demo
+----
+
+Vezi o versiune live a aplicației aici: https://mem02.vercel.app/ — poți testa direct un "test fulger" și naviga prin interfață.
+
 Pentru dezvoltatori
 -------------------
 
