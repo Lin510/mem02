@@ -201,6 +201,69 @@ function BlocksVisualization({ first, second, size = 18, gap = 6 }: { first: num
   );
 }
 
+function GroupsVisualization({ groups, perGroup, dotRadius = 6, groupGap = 18 }: { groups: number; perGroup: number; dotRadius?: number; groupGap?: number }) {
+  // Arată `groups` linii orizontale, fiecare cu `perGroup` puncte
+  const g = Math.max(0, groups);
+  const p = Math.max(0, perGroup);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: groupGap, alignItems: "flex-start" }}>
+      {Array.from({ length: g }).map((_, gi) => (
+        <div key={gi} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {Array.from({ length: p }).map((_, pi) => (
+            <div
+              key={pi}
+              style={{
+                width: dotRadius * 2,
+                height: dotRadius * 2,
+                borderRadius: dotRadius,
+                background: "#222",
+              }}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RectangleVisualization({ rows, cols, cellSize = 14, gap = 2 }: { rows: number; cols: number; cellSize?: number; gap?: number }) {
+  // Arată `cols` dreptunghiuri gri deschis, fiecare cu `rows` blocuri gri închis
+  const r = Math.max(0, rows);
+  const c = Math.max(0, cols);
+
+  return (
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+      {Array.from({ length: c }).map((_, ci) => (
+        <div
+          key={ci}
+          style={{
+            display: "grid",
+            gridTemplateRows: `repeat(${r}, ${cellSize}px)`,
+            gap,
+            padding: 8,
+            background: "#e9ecef",
+            borderRadius: 6,
+            border: "1px solid #ced4da",
+          }}
+        >
+          {Array.from({ length: r }).map((_, ri) => (
+            <div
+              key={ri}
+              style={{
+                width: cellSize,
+                height: cellSize,
+                background: "#495057",
+                borderRadius: 2,
+              }}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * 20 sloturi fixe (10 stânga + 10 dreapta) pe AXĂ:
  * - dacă available >= need:  [removed(gri)] | [remain(verde)]
@@ -304,7 +367,7 @@ export default function ExperimentsPage() {
   const variantOptionsByOp: Record<string, string[]> = {
     add: ["two-lines", "blocks"],
     sub: ["20-sloturi"],
-    mul: ["grila"],
+    mul: ["grila", "grupuri", "dreptunghi"],
     div: ["columns", "circles"],
   };
 
@@ -312,6 +375,8 @@ export default function ExperimentsPage() {
     "two-lines": "Două linii",
     "20-sloturi": "20 sloturi (axă)",
     grila: "Grilă",
+    grupuri: "Grupuri",
+    dreptunghi: "Dreptunghi",
     columns: "Coloane",
     circles: "Cercuri",
     blocks: "Blocuri",
@@ -523,6 +588,18 @@ export default function ExperimentsPage() {
                 rightNode = (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <SmallGrid a={a} b={x} />
+                  </div>
+                );
+              } else if (v === "grupuri") {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <GroupsVisualization groups={a} perGroup={x} />
+                  </div>
+                );
+              } else if (v === "dreptunghi") {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <RectangleVisualization rows={a} cols={x} />
                   </div>
                 );
               } else {
