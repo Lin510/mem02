@@ -544,6 +544,18 @@ export default function ExperimentsPage() {
           ))}
         </div>
 
+        {operation === "mul" && (viewVariantByOp[operation] === "grupuri" || viewVariantByOp[operation] === "axa") && (
+          <div style={{ marginBottom: 12, fontSize: 13, color: "#666", fontStyle: "italic", display: "flex", alignItems: "center", gap: 6 }}>
+            💡 Poți da click pe butonul 
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            pentru a schimba factorii și vizualizarea
+          </div>
+        )}
+
         {/* Header */}
         <div className="experiments-grid-header" style={{ display: "grid", gridTemplateColumns: `minmax(320px, 1fr) ${operation === "sub" ? rightColWidth : 380}px`, columnGap: 18, alignItems: "center" }}>
           <div />
@@ -681,9 +693,36 @@ export default function ExperimentsPage() {
                   </div>
                 );
               } else if (v === "axa") {
+                const step = swapFactors ? x : a;
+                const jumps = swapFactors ? a : x;
+                const displayText = jumps === 1 ? `${step} o dată` : `${step} de ${jumps} ori`;
                 rightNode = (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <NumberLineJumps step={a} jumps={x} />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    <button
+                      onClick={() => setSwapFactors(!swapFactors)}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 6,
+                        border: "1px solid #ddd",
+                        background: "#fff",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "#495057",
+                      }}
+                      title="Inversează factorii"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                      </svg>
+                      {displayText}
+                    </button>
+                    <NumberLineJumps step={step} jumps={jumps} />
                   </div>
                 );
               } else if (v === "grila") {
