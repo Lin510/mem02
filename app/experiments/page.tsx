@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import BackButton from "../components/BackButton";
 
-const opSymbols: Record<string, string> = { add: "+", sub: "-", mul: "×" };
+const opSymbols: Record<string, string> = { add: "+", sub: "-", mul: "×", div: "÷" };
 
 function compute(op: string, a: number, b: number) {
   if (op === "add") return a + b;
@@ -49,6 +49,97 @@ function SmallGrid({ a, b }: { a: number; b: number }) {
         ys.map((y, j) => <circle key={`p-${i}-${j}`} cx={x} cy={y} r={6} fill="#222" />)
       )}
     </svg>
+  );
+}
+
+function DivisionGrid({ rows, cols, dotRadius = 6, maxWidth = 160, maxHeight = 160 }: { rows: number; cols: number; dotRadius?: number; maxWidth?: number; maxHeight?: number }) {
+  const margin = 8;
+  const r = Math.max(1, rows);
+  const c = Math.max(1, cols);
+
+  const availW = Math.max(40, maxWidth - margin * 2);
+  const availH = Math.max(40, maxHeight - margin * 2);
+
+  const spacingX = c === 1 ? 0 : availW / (c - 1);
+  const spacingY = r === 1 ? 0 : availH / (r - 1);
+
+  const width = maxWidth;
+  const height = maxHeight;
+
+  const xs = Array.from({ length: c }, (_, i) => margin + (c === 1 ? availW / 2 : i * spacingX));
+  const ys = Array.from({ length: r }, (_, i) => margin + (r === 1 ? availH / 2 : i * spacingY));
+
+  return (
+    <svg width={width} height={height} style={{ borderRadius: 8, background: "#fff" }}>
+      {xs.map((x, i) => (
+        <line key={`v-${i}`} x1={x} y1={margin} x2={x} y2={height - margin} stroke="transparent" strokeWidth={0} />
+      ))}
+      {ys.map((y, i) => (
+        <line key={`h-${i}`} x1={margin} y1={y} x2={width - margin} y2={y} stroke="transparent" strokeWidth={0} />
+      ))}
+
+      {xs.map((x, ci) =>
+        ys.map((y, ri) => {
+          const key = `dot-${ci}-${ri}`;
+          return <circle key={key} cx={x} cy={y} r={dotRadius} fill="#222" />;
+        })
+      )}
+    </svg>
+  );
+}
+function DistributionColumns({ groups, perGroup, dotRadius = 8, maxWidth = 160, maxHeight = 160 }: { groups: number; perGroup: number; dotRadius?: number; maxWidth?: number; maxHeight?: number }) {
+  // groups = b (columns), perGroup = q (items per column)
+  const margin = 12;
+  const g = Math.max(1, Math.floor(groups));
+  const p = Math.max(0, Math.floor(perGroup));
+
+  const width = maxWidth;
+  const height = maxHeight;
+
+  const availW = Math.max(40, width - margin * 2);
+  const availH = Math.max(40, height - margin * 2);
+
+  // column x positions evenly across available width
+  const xs = Array.from({ length: g }, (_, i) => margin + (g === 1 ? availW / 2 : i * (availW / (g - 1))));
+
+  // for each column produce p y positions from top->down, centered inside availH
+  const colYs = (count: number) => {
+    if (count <= 0) return [] as number[];
+    if (count === 1) return [margin + availH / 2];
+    const spacing = availH / (count - 1);
+    return Array.from({ length: count }, (_, i) => margin + i * spacing);
+  };
+
+  return (
+    <svg width={width} height={height} style={{ borderRadius: 8, background: "#fff" }}>
+      {xs.map((x, ci) => (
+        colYs(p).map((y, ri) => (
+          <circle key={`c-${ci}-${ri}`} cx={x} cy={y} r={dotRadius} fill="#222" />
+        ))
+      ))}
+    </svg>
+  );
+}
+
+function DistributionCircles({ groups, perGroup, dotRadius = 6, size = 96 }: { groups: number; perGroup: number; dotRadius?: number; size?: number }) {
+  // Render `groups` circles horizontally, and draw `perGroup` dots stacked inside each circle (row by row)
+  const g = Math.max(1, groups);
+  const p = Math.max(0, perGroup);
+  const cols = Math.ceil(Math.sqrt(Math.max(1, p)));
+  const rows = Math.ceil(p / cols);
+
+  return (
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+      {Array.from({ length: g }).map((_, gi) => (
+        <div key={gi} style={{ width: size, height: size, borderRadius: size / 2, border: "2px solid #ddd", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", background: "#fff" }}>
+          <div style={{ width: size - 10, height: size - 10, display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 6 }}>
+            {Array.from({ length: p }).map((_, i) => (
+              <div key={i} style={{ width: dotRadius * 2, height: dotRadius * 2, borderRadius: dotRadius, background: "#222", margin: "0 auto" }} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -188,11 +279,17 @@ function TwentyBulletsAxis({
 
 
 export default function ExperimentsPage() {
-  const [operation, setOperation] = useState<"add" | "sub" | "mul">("add");
+  const [operation, setOperation] = useState<"add" | "sub" | "mul" | "div">("add");
+  const [divVariant, setDivVariant] = useState<"columns" | "circles">("columns");
+  const [animate, setAnimate] = useState(false);
   const [max, setMax] = useState<number>(10);
   const [a, setA] = useState<number>(1);
 
   const rows = useMemo(() => Array.from({ length: max }, (_, i) => i + 1), [max]);
+  const displayRows = useMemo(() => {
+    if (operation !== "div") return rows;
+    return rows.filter((x) => a % x === 0);
+  }, [rows, operation, a]);
   const symbol = opSymbols[operation];
 
   // pentru - : două vizuale pe rând
@@ -225,18 +322,22 @@ export default function ExperimentsPage() {
 
         {/* Controls */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setOperation("add")} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222", background: operation === "add" ? "#222" : "#fff", color: operation === "add" ? "#fff" : "#000", fontWeight: 700 }}>+</button>
             <button onClick={() => setOperation("sub")} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222", background: operation === "sub" ? "#222" : "#fff", color: operation === "sub" ? "#fff" : "#000", fontWeight: 700 }}>-</button>
             <button onClick={() => setOperation("mul")} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222", background: operation === "mul" ? "#222" : "#fff", color: operation === "mul" ? "#fff" : "#000", fontWeight: 700 }}>×</button>
+            <button onClick={() => setOperation("div")} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222", background: operation === "div" ? "#222" : "#fff", color: operation === "div" ? "#fff" : "#000", fontWeight: 700 }}>÷</button>
           </div>
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
             <div aria-label="A choices" style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(rows.length, 10)}, auto)`, gap: 6 }}>
-              {rows.map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setA(v)}
+              {rows.map((v) => {
+                const isDisabled = operation === "div" && v === 1;
+                return (
+                  <button
+                    key={v}
+                    onClick={() => { if (!isDisabled) setA(v); }}
+                    disabled={isDisabled}
                   style={{
                     padding: "6px 8px",
                     borderRadius: 6,
@@ -247,14 +348,24 @@ export default function ExperimentsPage() {
                     cursor: "pointer",
                     minWidth: 36,
                     textAlign: "center",
+                      ...(isDisabled ? { opacity: 0.45, cursor: "not-allowed" } : {}),
                   }}
-                >
-                  {v}
-                </button>
-              ))}
+                  >
+                    {v}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
+
+        {operation === "div" ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontWeight: 700 }}>Vizualizare împărțire:</div>
+            <button onClick={() => setDivVariant("columns")} style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #222", background: divVariant === "columns" ? "#222" : "#fff", color: divVariant === "columns" ? "#fff" : "#000", fontWeight: 700 }}>Coloane</button>
+            <button onClick={() => setDivVariant("circles")} style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #222", background: divVariant === "circles" ? "#222" : "#fff", color: divVariant === "circles" ? "#fff" : "#000", fontWeight: 700 }}>Cercuri</button>
+          </div>
+        ) : null}
 
         {/* Header */}
         <div className="experiments-grid-header" style={{ display: "grid", gridTemplateColumns: `minmax(320px, 1fr) ${operation === "sub" ? rightColWidth : 380}px`, columnGap: 18, alignItems: "center" }}>
@@ -264,9 +375,10 @@ export default function ExperimentsPage() {
 
         {/* Rows */}
         <div className="experiments-grid-rows" style={{ display: "grid", gridTemplateColumns: `minmax(320px, 1fr) ${operation === "sub" ? rightColWidth : 380}px`, columnGap: 18 }}>
-          {rows.map((x) => {
+          {displayRows.map((x) => {
             // stânga: explică
             let leftNode: React.ReactNode;
+            let rightNode: React.ReactNode;
 
             if (operation === "sub") {
               const leftVal = compute("sub", x, a); // x - a
@@ -284,6 +396,29 @@ export default function ExperimentsPage() {
                   </div>
                 </div>
               );
+            } else if (operation === "div") {
+              const divisible = a % x === 0;
+              const q = divisible ? a / x : null;
+
+              leftNode = (
+                <div style={{ fontWeight: 700, fontSize: "1.5em" }}>
+                  {a} ÷ {x} = {divisible ? q : <span style={{ color: "#bbb" }}>—</span>}
+                </div>
+              );
+
+              rightNode = (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {divisible ? (
+                    divVariant === "columns" ? (
+                      <DistributionColumns groups={x} perGroup={q ?? 0} />
+                    ) : (
+                      <DistributionCircles groups={x} perGroup={q ?? 0} />
+                    )
+                  ) : (
+                    <div style={{ color: "#999", fontStyle: "italic" }}>Nu e divizibil fără remainder</div>
+                  )}
+                </div>
+              );
             } else {
               const left = compute(operation, a, x);
               if (operation === "mul") {
@@ -298,7 +433,6 @@ export default function ExperimentsPage() {
             }
 
             // dreapta: vizual
-            let rightNode: React.ReactNode;
 
             if (operation === "sub") {
               rightNode = (
@@ -316,6 +450,8 @@ export default function ExperimentsPage() {
                   <TwoVerticalLines left={a} right={x} dotRadius={6} />
                 </div>
               );
+            } else if (operation === "div") {
+              // division case handled earlier; keep the `rightNode` already set
             } else {
               rightNode = (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
