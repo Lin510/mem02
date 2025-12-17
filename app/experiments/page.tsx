@@ -180,6 +180,27 @@ function TwoVerticalLines({ left, right, dotRadius = 6 }: { left: number; right:
   );
 }
 
+function BlocksVisualization({ first, second, size = 18, gap = 6 }: { first: number; second: number; size?: number; gap?: number }) {
+  const rowStyle: React.CSSProperties = { display: "flex", gap, alignItems: "center" };
+  const square = (color: string) => ({ background: color, width: size, height: size, borderRadius: 4 });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={rowStyle}>
+        {Array.from({ length: Math.max(0, first) }).map((_, i) => (
+          <div key={`f-${i}`} style={square("#e9ecef")} />
+        ))}
+      </div>
+
+      <div style={rowStyle}>
+        {Array.from({ length: Math.max(0, second) }).map((_, i) => (
+          <div key={`s-${i}`} style={square("#6c757d")} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * 20 sloturi fixe (10 stânga + 10 dreapta) pe AXĂ:
  * - dacă available >= need:  [removed(gri)] | [remain(verde)]
@@ -281,7 +302,7 @@ function TwentyBulletsAxis({
 export default function ExperimentsPage() {
   const [operation, setOperation] = useState<"add" | "sub" | "mul" | "div">("add");
   const variantOptionsByOp: Record<string, string[]> = {
-    add: ["two-lines"],
+    add: ["two-lines", "blocks"],
     sub: ["20-sloturi"],
     mul: ["grila"],
     div: ["columns", "circles"],
@@ -293,6 +314,7 @@ export default function ExperimentsPage() {
     grila: "Grilă",
     columns: "Coloane",
     circles: "Cercuri",
+    blocks: "Blocuri",
   };
 
   const [viewVariantByOp, setViewVariantByOp] = useState<Record<"add" | "sub" | "mul" | "div", string>>({
@@ -479,6 +501,12 @@ export default function ExperimentsPage() {
                 rightNode = (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <TwoVerticalLines left={a} right={x} dotRadius={6} />
+                  </div>
+                );
+              } else if (v === "blocks") {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <BlocksVisualization first={a} second={x} />
                   </div>
                 );
               } else {
