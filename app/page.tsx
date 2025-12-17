@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import BackButton from "./components/BackButton";
+import ButonInapoi from "./components/ButonInapoi";
 
 export default function Home() {
   return (
@@ -10,7 +10,7 @@ export default function Home() {
       <div style={{ maxWidth: 980, margin: "0 auto", padding: 28 }}>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
-            <BackButton />
+            <ButonInapoi />
             <h1 style={{ fontSize: 40, fontWeight: 900, margin: 0 }}>Tabele Aritmetice</h1>
           </div>
           <p style={{ margin: "8px 0 6px", color: "#333", fontWeight: 600 }}>Gândită pentru utilizare la clasă și acasă.</p>

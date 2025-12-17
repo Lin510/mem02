@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AnswerPad from "./AnswerPad";
 
 type Operation = "add" | "sub" | "mul";
 
@@ -13,389 +14,338 @@ type Props = {
 type QA = { a: number; b: number; answer: number | null; correct: boolean | null };
 
 export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) {
+  const [started, setStarted] = useState(false);
+  const [done, setDone] = useState(false);
+
   const [questions, setQuestions] = useState<QA[]>([]);
-  const [index, setIndex] = useState(0);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [finishedAt, setFinishedAt] = useState<number | null>(null);
-  const [input, setInput] = useState<string>("");
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const [selectedMax, setSelectedMax] = useState<number | null>(null);
-  
+  const [idx, setIdx] = useState(0);
 
-  useEffect(() => {
-    reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grade, operation, maxFactor]);
+  // pseudo-input value (string, digits only)
+  const [answerStr, setAnswerStr] = useState<string>("");
 
-  // Helpers and core logic
-  function randInt(min: number, max: number) {
+  // lock to prevent double-submit spam
+  const submittingRef = useRef(false);
+
+  const total = 5;
+
+  const maxLen = useMemo(() => {
+    // Grade 0: 1..10 add/sub (results <= 10), Grade 2 add/sub up to 20, mul up to 10*20 etc.
+    // 3 digits is safe for your current ranges.
+    if (operation === "mul") return 3;
+    return grade === 0 ? 2 : 2;
+  }, [grade, operation]);
+
+  function computeAnswer(a: number, b: number) {
+    if (operation === "add") return a + b;
+    if (operation === "sub") return a - b;
+    return a * b;
+  }
+
+  function randomInt(min: number, max: number) {
+    // inclusive
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
-  function buildQuestions(sel: number) {
-    const count = 5;
-    const qs: QA[] = [];
-    const seen = new Set<string>();
-    const pageMax = Math.max(1, Math.floor(maxFactor));
-    const selVal = Math.max(1, Math.floor(sel));
-
-    if (operation === "sub") {
-      // Pools
-      const leftPool: number[] = selVal > 1 ? Array.from({ length: selVal - 1 }, (_, i) => i + 1) : [];
-      let rightPool: number[] = pageMax > selVal ? Array.from({ length: pageMax - selVal }, (_, i) => selVal + 1 + i) : [];
-
-      // For small sel prefer larger right values
-      if (selVal <= 10) {
-        const start = Math.max(10, selVal + 1);
-        if (pageMax >= start) rightPool = Array.from({ length: pageMax - start + 1 }, (_, i) => start + i);
+  function generateQuestions(): QA[] {
+    const q: QA[] = [];
+    for (let i = 0; i < total; i++) {
+      if (operation === "add") {
+        const max = grade === 0 ? 10 : 20;
+        const a = randomInt(1, max);
+        const b = randomInt(1, max);
+        q.push({ a, b, answer: null, correct: null });
+        continue;
       }
 
-      // For large sel avoid right-side questions
-      if (selVal >= 16) rightPool = [];
-
-      const pickRandomFromArray = (arr: number[], n: number) => {
-        const copy = arr.slice();
-        const res: number[] = [];
-        for (let i = 0; i < n && copy.length > 0; i++) {
-          const idx = randInt(0, copy.length - 1);
-          res.push(copy.splice(idx, 1)[0]);
-        }
-        return res;
-      };
-
-      let wantLeft = 3;
-      let wantRight = 2;
-      if (selVal <= 10) {
-        wantLeft = 1;
-        wantRight = 4;
-      } else if (selVal >= 16) {
-        wantLeft = 4;
-        wantRight = 1;
+      if (operation === "sub") {
+        const max = grade === 0 ? 10 : 20;
+        // avoid negative results (your rule)
+        const a = randomInt(1, max);
+        const b = randomInt(1, a);
+        q.push({ a, b, answer: null, correct: null });
+        continue;
       }
 
-      const leftAvailable = leftPool.filter((y) => !seen.has(`${selVal},${y}`));
-      const rightAvailable = rightPool.filter((x) => !seen.has(`${x},${selVal}`));
-
-      const chosenLeft = pickRandomFromArray(leftAvailable, wantLeft);
-      const chosenRight = pickRandomFromArray(rightAvailable, wantRight);
-
-      // Add chosen
-      for (const y of chosenLeft) {
-        if (qs.length >= count) break;
-        const key = `${selVal},${y}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          qs.push({ a: selVal, b: y, answer: null, correct: null });
-        }
-      }
-      for (const x of chosenRight) {
-        if (qs.length >= count) break;
-        const key = `${x},${selVal}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          qs.push({ a: x, b: selVal, answer: null, correct: null });
-        }
-      }
-
-      // Fill deterministically from left (sel - y)
-      let yFill = 1;
-      while (qs.length < count && yFill < selVal) {
-        const key = `${selVal},${yFill}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          qs.push({ a: selVal, b: yFill, answer: null, correct: null });
-        }
-        yFill++;
-      }
-
-      // If still short, use larger minuends (x - sel)
-      let xFill = selVal + 1;
-      while (qs.length < count && xFill <= pageMax) {
-        const key = `${xFill},${selVal}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          qs.push({ a: xFill, b: selVal, answer: null, correct: null });
-        }
-        xFill++;
-      }
-
-      // slight shuffle
-      for (let i = qs.length - 1; i > 0; i--) {
-        const j = randInt(0, i);
-        const tmp = qs[i];
-        qs[i] = qs[j];
-        qs[j] = tmp;
-      }
-
-      return qs.slice(0, count);
+      // mul
+      // You already have selector logic elsewhere; keep it simple here
+      const maxA = grade === 0 ? 10 : maxFactor;
+      const a = randomInt(1, maxA);
+      const b = randomInt(1, 10);
+      q.push({ a, b, answer: null, correct: null });
     }
-
-    // addition and multiplication: include selected number as one operand
-    if (operation === "add" || operation === "mul") {
-      const maxOther = operation === "mul" ? Math.min(10, Math.max(1, Math.floor(maxFactor))) : Math.max(1, Math.floor(maxFactor));
-      let attempts = 0;
-      while (qs.length < 5 && attempts < 500) {
-        attempts++;
-        let other = randInt(1, maxOther);
-        if (operation === "mul" && other === selVal) {
-          // avoid identical factor repeated; pick another
-          other = other === maxOther ? Math.max(1, other - 1) : other + 1;
-        }
-        let a: number, b: number;
-        if (operation === "add") {
-          // store unordered pair to avoid duplicates
-          a = Math.min(selVal, other);
-          b = Math.max(selVal, other);
-        } else {
-          // multiplication - keep order arbitrary
-          if (Math.random() < 0.5) {
-            a = selVal;
-            b = other;
-          } else {
-            a = other;
-            b = selVal;
-          }
-        }
-        const key = operation === "add" || operation === "mul" ? `${a},${b}` : `${a},${b}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        qs.push({ a, b, answer: null, correct: null });
-      }
-
-      // deterministic fill if needed
-      let otherFill = 1;
-      while (qs.length < 5 && otherFill <= maxOther) {
-        const a = operation === "add" ? Math.min(selVal, otherFill) : (Math.random() < 0.5 ? selVal : otherFill);
-        const b = operation === "add" ? Math.max(selVal, otherFill) : (a === selVal ? otherFill : selVal);
-        const key = `${a},${b}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          qs.push({ a, b, answer: null, correct: null });
-        }
-        otherFill++;
-      }
-
-      return qs.slice(0, 5);
-    }
-
-    return qs;
+    return q;
   }
 
   function reset() {
+    setStarted(false);
+    setDone(false);
     setQuestions([]);
-    setIndex(0);
-    setStartedAt(null);
-    setFinishedAt(null);
-    setInput("");
-    const maxAvailable = Math.max(1, Math.floor(maxFactor));
-    setSelectedMax(randInt(1, maxAvailable));
+    setIdx(0);
+    setAnswerStr("");
+    submittingRef.current = false;
   }
 
-  function startIfNeeded() {
-    if (!startedAt) setStartedAt(Date.now());
+  function start() {
+    setQuestions(generateQuestions());
+    setIdx(0);
+    setAnswerStr("");
+    setStarted(true);
+    setDone(false);
+    submittingRef.current = false;
   }
 
-  function submitAnswer() {
-    if (index >= questions.length) return;
-    const q = questions[index];
-    const user = input === "" ? NaN : Number(input);
-    let correct = false;
-    if (operation === "add") correct = user === q.a + q.b;
-    if (operation === "sub") correct = user === q.a - q.b;
-    if (operation === "mul") correct = user === q.a * q.b;
+  const appendDigit = useCallback((d: number) => {
+    setAnswerStr((prev) => {
+      if (prev.length >= maxLen) return prev;
+      // avoid leading zeros like "00" (still allow single "0")
+      if (prev === "0") return String(d);
+      return prev + String(d);
+    });
+  }, [maxLen]);
 
-    const updated = [...questions];
-    updated[index] = { ...q, answer: user, correct };
-    setQuestions(updated);
-    setInput("");
-    if (index + 1 >= questions.length) {
-      setFinishedAt(Date.now());
-      setIndex(index + 1);
-    } else {
-      setIndex(index + 1);
-    }
-  }
+  const backspace = useCallback(() => {
+    setAnswerStr((prev) => (prev.length ? prev.slice(0, -1) : prev));
+  }, []);
 
-  // autofocus input when a question is shown
+  const submitAnswer = useCallback(() => {
+    if (!started || done) return;
+    if (submittingRef.current) return;
+    
+    setAnswerStr((currentAnswer) => {
+      if (!currentAnswer.length) return currentAnswer;
+
+      submittingRef.current = true;
+
+      setQuestions((currentQuestions) => {
+        const current = currentQuestions[idx];
+        const expected = computeAnswer(current.a, current.b);
+        const given = Number.parseInt(currentAnswer, 10);
+
+        const updated = [...currentQuestions];
+        updated[idx] = {
+          ...current,
+          answer: Number.isFinite(given) ? given : null,
+          correct: Number.isFinite(given) ? given === expected : false,
+        };
+        return updated;
+      });
+
+      // next
+      const nextIdx = idx + 1;
+
+      if (nextIdx >= total) {
+        setDone(true);
+        setIdx(idx);
+        submittingRef.current = false;
+      } else {
+        setIdx(nextIdx);
+        queueMicrotask(() => {
+          submittingRef.current = false;
+        });
+      }
+
+      return ""; // clear answer
+    });
+  }, [started, done, idx, total]);
+
+  // Keyboard support (digits / backspace / enter) WITHOUT focusing a real input
   useEffect(() => {
-    if (startedAt && index < questions.length) {
-      setTimeout(() => inputRef.current?.focus(), 20);
-    }
-  }, [startedAt, index, questions.length]);
+    if (!started || done) return;
 
-  const totalTime = startedAt && finishedAt ? Math.round((finishedAt - startedAt) / 1000) : null;
-  const correctCount = questions.filter((q) => q.correct).length;
+    function onKeyDown(e: KeyboardEvent) {
+      // digits
+      if (e.key >= "0" && e.key <= "9") {
+        e.preventDefault();
+        appendDigit(Number(e.key));
+        return;
+      }
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        backspace();
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submitAnswer();
+        return;
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown, { passive: false });
+    return () => window.removeEventListener("keydown", onKeyDown as any);
+  }, [started, done, appendDigit, backspace, submitAnswer]);
+
+  const current = started && questions.length ? questions[idx] : null;
+
+  const symbol = operation === "add" ? "+" : operation === "sub" ? "-" : "×";
+
+  const correctCount = useMemo(() => questions.filter((q) => q.correct === true).length, [questions]);
 
   return (
-    <div style={{ marginTop: 18, textAlign: "center" }}>
-      <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Test fulger — 5 întrebări</h3>
+    <div style={{ maxWidth: 980, margin: "0 auto", padding: "16px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <h2 style={{ margin: 0, fontSize: "1.4rem" }}>Test Fulger</h2>
 
-      {!startedAt && (
-        <div style={{ marginBottom: 10 }}>
-          {(operation === "mul" || operation === "add" || operation === "sub") && (
-            <div style={{ marginBottom: 12, textAlign: "center" }}>
-              <div style={{ marginBottom: 6, fontWeight: 700 }}>{operation === "mul" ? "Limita multiplicatorilor" : operation === "add" ? "Limita termenilor" : "Limita numerelor"}</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {!started && (
+            <button
+              onClick={start}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid #111",
+                background: "#111",
+                color: "#fff",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Start
+            </button>
+          )}
+          {started && !done && (
+            <button
+              onClick={reset}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid #111",
+                background: "#fff",
+                color: "#111",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-                <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: "0 auto" }}>
-                  {Array.from({ length: Math.min(10, Math.max(1, Math.floor(maxFactor))) }).map((_, i) => {
-                    const v = i + 1;
-                    const isSelected = selectedMax === v;
-                    return (
-                      <button
-                        key={v}
-                        onClick={() => {
-                              setSelectedMax(v);
-                            }}
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 8,
-                          border: isSelected ? "2px solid #222" : "1px solid #bbb",
-                          background: isSelected ? "#222" : "#fff",
-                          color: isSelected ? "#fff" : "#000",
-                          fontWeight: 800,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {v}
-                      </button>
-                    );
-                  })}
-                </div>
+      {!started && (
+        <p style={{ marginTop: 10, opacity: 0.75, textAlign: "left" }}>
+          Răspunde rapid folosind keypad-ul de pe ecran.
+        </p>
+      )}
 
-                {grade === 2 && maxFactor > 10 && (
-                  <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: "0 auto" }}>
-                    {Array.from({ length: Math.max(0, Math.min(10, Math.floor(maxFactor) - 10)) }).map((_, i) => {
-                      const v = 11 + i;
-                      const isSelected = selectedMax === v;
-                      return (
-                        <button
-                          key={v}
-                          onClick={() => {
-                            setSelectedMax(v);
-                          }}
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 8,
-                            border: isSelected ? "2px solid #222" : "1px solid #bbb",
-                            background: isSelected ? "#222" : "#fff",
-                            color: isSelected ? "#fff" : "#000",
-                            fontWeight: 800,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {v}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+      {started && current && !done && (
+        <div style={{ marginTop: 18, display: "flex", justifyContent: "center" }}>
+          {/* Question */}
+          <div
+            style={{
+              border: "1px solid rgba(0,0,0,0.08)",
+              borderRadius: 14,
+              padding: 20,
+              background: "#fff",
+              maxWidth: 420,
+              width: "100%",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ fontSize: "2.2rem", fontWeight: 800, letterSpacing: 0.5 }}>
+                {current.a} {symbol} {current.b} =
+              </div>
+
+              <div style={{ fontSize: "0.95rem", opacity: 0.65, fontWeight: 600 }}>
+                {Math.min(idx + 1, total)}/{total}
               </div>
             </div>
-          )}
 
-          <button
-            onClick={() => {
-              if (selectedMax == null) return;
-              setQuestions(buildQuestions(selectedMax));
-              setStartedAt(Date.now());
-              setFinishedAt(null);
-              setIndex(0);
-            }}
-            style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222", background: "#222", color: "#fff", fontWeight: 700 }}
-          >
-            Începe testul
-          </button>
-          <button onClick={reset} style={{ marginLeft: 8, padding: "8px 12px", borderRadius: 6 }}>Resetează</button>
-        </div>
-      )}
-
-      {startedAt && index < questions.length && (
-        <div>
-          <div style={{ marginBottom: 8, fontWeight: 700 }}>
-            Întrebarea {index + 1} din {questions.length}
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 8 }}>
-            {questions[index].a} {operation === "mul" ? "×" : operation === "sub" ? "-" : "+"} {questions[index].b} = ?
-          </div>
-          <div>
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              inputMode="numeric"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  startIfNeeded();
-                  submitAnswer();
-                }
-              }}
-              style={{ width: 120, padding: 8, marginRight: 8 }}
-            />
-            <button
-              onClick={() => {
-                startIfNeeded();
-                submitAnswer();
-              }}
-              style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222", background: "#222", color: "#fff", fontWeight: 700 }}
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )}
-
-      {startedAt && index >= questions.length && (
-        <div style={{ marginTop: 12 }}>
-          <div style={{ marginBottom: 8, fontWeight: 800 }}>Ai terminat testul!</div>
-          <div style={{ marginBottom: 6 }}>Scor: {correctCount} / {questions.length}</div>
-          <div style={{ marginBottom: 6 }}>Timp: {totalTime === null ? "—" : `${totalTime}s`}</div>
-
-          <div style={{ marginTop: 8 }}>
-            <button onClick={reset} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222" }}>Reîncepe</button>
-          </div>
-
-          <div style={{ marginTop: 18, textAlign: "left", maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
-            <div style={{ fontWeight: 800, marginBottom: 8 }}>Istoric rezultate</div>
-            <div style={{ display: "grid", gap: 8 }}>
-              {questions.map((q, i) => {
-                const op = operation === "mul" ? "×" : operation === "sub" ? "-" : "+";
-                const correctAnswer = operation === "add" ? q.a + q.b : operation === "sub" ? q.a - q.b : q.a * q.b;
-                const userAnswerDisplay = q.answer === null || Number.isNaN(q.answer) ? "—" : String(q.answer);
-                const markStyle: React.CSSProperties = {
-                  width: 36,
-                  height: 28,
-                  borderRadius: 6,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 800,
-                  color: "#fff",
-                };
-                return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fbfbfb", padding: "8px 10px", borderRadius: 8, border: "1px solid #eee" }}>
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{q.a} {op} {q.b} = {correctAnswer}</div>
-                      <div style={{ fontSize: 14, color: "#333" }}>Răspuns: {userAnswerDisplay}</div>
-                    </div>
-
-                    <div style={{ marginLeft: 12 }}>
-                      {q.correct ? (
-                        <div style={{ ...markStyle, background: "#2ecc71" }}>✓</div>
-                      ) : (
-                        <div style={{ ...markStyle, background: "#e74c3c" }}>✕</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ marginTop: 14 }}>
+              <AnswerPad
+                answerStr={answerStr}
+                onDigit={appendDigit}
+                onBackspace={backspace}
+                onSubmit={submitAnswer}
+                disabled={!answerStr.length || done}
+              />
             </div>
           </div>
         </div>
       )}
+
+      {/* Results */}
+      {done && (
+        <div style={{ marginTop: 18, display: "flex", justifyContent: "center" }}>
+          <div
+            style={{
+              border: "1px solid rgba(0,0,0,0.08)",
+              borderRadius: 14,
+              padding: 16,
+              background: "#fff",
+              maxWidth: 560,
+              width: "100%",
+            }}
+          >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ fontWeight: 900, fontSize: "1.1rem" }}>
+                  Rezultat: {correctCount}/{total}
+                </div>
+                <button
+                  onClick={start}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    border: "1px solid #111",
+                    background: "#111",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Reia
+                </button>
+              </div>
+
+              <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+                {questions.map((q, i) => {
+                  const expected = computeAnswer(q.a, q.b);
+                  const ok = q.correct === true;
+                  const userAnswerDisplay = q.answer === null || Number.isNaN(q.answer) ? "—" : String(q.answer);
+                  const markStyle: React.CSSProperties = {
+                    width: 36,
+                    height: 28,
+                    borderRadius: 6,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 800,
+                    color: "#fff",
+                  };
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        background: "#fbfbfb",
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        border: "1px solid #eee",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 700 }}>
+                          {q.a} {symbol} {q.b} = {expected}
+                        </div>
+                        <div style={{ fontSize: 14, color: "#333" }}>răspuns: {userAnswerDisplay}</div>
+                      </div>
+
+                      <div style={{ marginLeft: 12 }}>
+                        {ok ? (
+                          <div style={{ ...markStyle, background: "#2ecc71" }}>✓</div>
+                        ) : (
+                          <div style={{ ...markStyle, background: "#e74c3c" }}>✕</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

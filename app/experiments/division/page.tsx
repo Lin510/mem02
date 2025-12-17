@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import BackButton from "../../components/BackButton";
+import ButonInapoi from "../../components/ButonInapoi";
 
 export default function DivisionExperiment() {
   const [min, setMin] = useState(-10);
@@ -28,7 +28,7 @@ export default function DivisionExperiment() {
     <div style={{ minHeight: "100vh", padding: 28, fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system" }}>
       <div style={{ maxWidth: 980, margin: "0 auto" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 18 }}>
-          <BackButton />
+          <ButonInapoi />
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>Împărțire (doar rezultate întregi)</h1>
         </div>
 
