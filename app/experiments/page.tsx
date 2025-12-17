@@ -180,6 +180,27 @@ function TwoVerticalLines({ left, right, dotRadius = 6 }: { left: number; right:
   );
 }
 
+function BlocksVisualization({ first, second, size = 18, gap = 6 }: { first: number; second: number; size?: number; gap?: number }) {
+  const rowStyle: React.CSSProperties = { display: "flex", gap, alignItems: "center" };
+  const square = (color: string) => ({ background: color, width: size, height: size, borderRadius: 4 });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={rowStyle}>
+        {Array.from({ length: Math.max(0, first) }).map((_, i) => (
+          <div key={`f-${i}`} style={square("#e9ecef")} />
+        ))}
+      </div>
+
+      <div style={rowStyle}>
+        {Array.from({ length: Math.max(0, second) }).map((_, i) => (
+          <div key={`s-${i}`} style={square("#6c757d")} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * 20 sloturi fixe (10 stânga + 10 dreapta) pe AXĂ:
  * - dacă available >= need:  [removed(gri)] | [remain(verde)]
@@ -280,7 +301,32 @@ function TwentyBulletsAxis({
 
 export default function ExperimentsPage() {
   const [operation, setOperation] = useState<"add" | "sub" | "mul" | "div">("add");
+<<<<<<< HEAD
   const [divVariant, setDivVariant] = useState<"columns" | "circles">("columns");
+=======
+  const variantOptionsByOp: Record<string, string[]> = {
+    add: ["two-lines", "blocks"],
+    sub: ["20-sloturi"],
+    mul: ["grila"],
+    div: ["columns", "circles"],
+  };
+
+  const variantLabel: Record<string, string> = {
+    "two-lines": "Două linii",
+    "20-sloturi": "20 sloturi (axă)",
+    grila: "Grilă",
+    columns: "Coloane",
+    circles: "Cercuri",
+    blocks: "Blocuri",
+  };
+
+  const [viewVariantByOp, setViewVariantByOp] = useState<Record<"add" | "sub" | "mul" | "div", string>>({
+    add: "two-lines",
+    sub: "20-sloturi",
+    mul: "grila",
+    div: "columns",
+  });
+>>>>>>> a662b53 (eat(experiments): per-op visualization selector; add blocks view)
   const [animate, setAnimate] = useState(false);
   const [max, setMax] = useState<number>(10);
   const [a, setA] = useState<number>(1);
@@ -444,12 +490,52 @@ export default function ExperimentsPage() {
                 </div>
               );
             } else if (operation === "add") {
+<<<<<<< HEAD
               // For addition, show two vertical lines with counts `a` and `x` respectively
               rightNode = (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <TwoVerticalLines left={a} right={x} dotRadius={6} />
                 </div>
               );
+=======
+              // addition: render according to selected variant
+              const v = viewVariantByOp[operation];
+              if (v === "two-lines") {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <TwoVerticalLines left={a} right={x} dotRadius={6} />
+                  </div>
+                );
+              } else if (v === "blocks") {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <BlocksVisualization first={a} second={x} />
+                  </div>
+                );
+              } else {
+                // fallback to grid
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <SmallGrid a={a} b={x} />
+                  </div>
+                );
+              }
+            } else if (operation === "mul") {
+              const v = viewVariantByOp[operation];
+              if (v === "grila") {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <SmallGrid a={a} b={x} />
+                  </div>
+                );
+              } else {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <SmallGrid a={a} b={x} />
+                  </div>
+                );
+              }
+>>>>>>> a662b53 (eat(experiments): per-op visualization selector; add blocks view)
             } else if (operation === "div") {
               // division case handled earlier; keep the `rightNode` already set
             } else {
