@@ -227,6 +227,66 @@ function GroupsVisualization({ groups, perGroup, dotRadius = 6, groupGap = 18 }:
   );
 }
 
+function NumberLineJumps({ step, jumps }: { step: number; jumps: number }) {
+  // step = cât sărim, jumps = de câte ori sărim
+  // Ex: 3 × 4 = sărituri de 3, de 4 ori: 0 → 3 → 6 → 9 → 12
+  const s = Math.max(1, step);
+  const j = Math.max(0, jumps);
+  
+  const points = Array.from({ length: j + 1 }, (_, i) => i * s);
+  const max = points[points.length - 1] || 0;
+  
+  const width = 450;
+  const margin = 40;
+  const availWidth = width - margin * 2;
+  const scaleX = max > 0 ? availWidth / max : 1;
+  
+  return (
+    <svg width={width} height={80} style={{ borderRadius: 8, background: "#fff" }}>
+      {/* Axa */}
+      <line x1={margin} y1={50} x2={width - margin} y2={50} stroke="#333" strokeWidth={2} />
+      
+      {/* Săgeți între puncte */}
+      {points.slice(0, -1).map((val, i) => {
+        const x1 = margin + val * scaleX;
+        const x2 = margin + points[i + 1] * scaleX;
+        const midY = 35;
+        return (
+          <g key={`arrow-${i}`}>
+            <path
+              d={`M ${x1 + 8} ${midY} Q ${(x1 + x2) / 2} ${midY - 8} ${x2 - 8} ${midY}`}
+              stroke="#3b82f6"
+              strokeWidth={2}
+              fill="none"
+              markerEnd="url(#arrowhead)"
+            />
+          </g>
+        );
+      })}
+      
+      {/* Puncte și etichete */}
+      {points.map((val, i) => {
+        const x = margin + val * scaleX;
+        return (
+          <g key={`point-${i}`}>
+            <circle cx={x} cy={50} r={6} fill={i === 0 ? "#999" : "#3b82f6"} />
+            <text x={x} y={70} textAnchor="middle" fontSize={13} fontWeight={600} fill="#333">
+              {val}
+            </text>
+          </g>
+        );
+      })}
+      
+      {/* Săgeată marker */}
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="#3b82f6" />
+        </marker>
+      </defs>
+    </svg>
+  );
+}
+
 function RectangleVisualization({ rows, cols, cellSize = 14, gap = 2 }: { rows: number; cols: number; cellSize?: number; gap?: number }) {
   // Arată `cols` dreptunghiuri gri deschis, fiecare cu `rows` blocuri gri închis
   const r = Math.max(0, rows);
@@ -367,7 +427,7 @@ export default function ExperimentsPage() {
   const variantOptionsByOp: Record<string, string[]> = {
     add: ["two-lines", "blocks"],
     sub: ["20-sloturi"],
-    mul: ["grila", "grupuri", "dreptunghi"],
+    mul: ["grupuri", "axa", "grila"],
     div: ["columns", "circles"],
   };
 
@@ -375,8 +435,8 @@ export default function ExperimentsPage() {
     "two-lines": "Două linii",
     "20-sloturi": "20 sloturi (axă)",
     grila: "Grilă",
-    grupuri: "Grupuri",
-    dreptunghi: "Dreptunghi",
+    grupuri: "Grupe egale",
+    axa: "Sărituri pe axă",
     columns: "Coloane",
     circles: "Cercuri",
     blocks: "Blocuri",
@@ -385,12 +445,13 @@ export default function ExperimentsPage() {
   const [viewVariantByOp, setViewVariantByOp] = useState<Record<"add" | "sub" | "mul" | "div", string>>({
     add: "two-lines",
     sub: "20-sloturi",
-    mul: "grila",
+    mul: "grupuri",
     div: "columns",
   });
   const [animate, setAnimate] = useState(false);
   const [max, setMax] = useState<number>(10);
   const [a, setA] = useState<number>(1);
+  const [swapFactors, setSwapFactors] = useState(false);
 
   const rows = useMemo(() => Array.from({ length: max }, (_, i) => i + 1), [max]);
   const displayRows = useMemo(() => {
@@ -584,22 +645,51 @@ export default function ExperimentsPage() {
               }
             } else if (operation === "mul") {
               const v = viewVariantByOp[operation];
-              if (v === "grila") {
+              if (v === "grupuri") {
+                const r = swapFactors ? x : a;
+                const c = swapFactors ? a : x;
+                const repetitions = c;
+                const items = r;
+                const displayText = repetitions === 1 ? `${items} o dată` : `${items} de ${repetitions} ori`;
+                rightNode = (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                    <button
+                      onClick={() => setSwapFactors(!swapFactors)}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 6,
+                        border: "1px solid #ddd",
+                        background: "#fff",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "#495057",
+                      }}
+                      title="Inversează factorii"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                      </svg>
+                      {displayText}
+                    </button>
+                    <RectangleVisualization rows={r} cols={c} />
+                  </div>
+                );
+              } else if (v === "axa") {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <NumberLineJumps step={a} jumps={x} />
+                  </div>
+                );
+              } else if (v === "grila") {
                 rightNode = (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <SmallGrid a={a} b={x} />
-                  </div>
-                );
-              } else if (v === "grupuri") {
-                rightNode = (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <GroupsVisualization groups={a} perGroup={x} />
-                  </div>
-                );
-              } else if (v === "dreptunghi") {
-                rightNode = (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <RectangleVisualization rows={a} cols={x} />
                   </div>
                 );
               } else {
