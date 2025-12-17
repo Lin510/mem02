@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import BackButton from "../components/BackButton";
+import ButonInapoi from "../components/ButonInapoi";
 
 const opSymbols: Record<string, string> = { add: "+", sub: "-", mul: "×", div: "÷" };
 
@@ -475,7 +475,7 @@ export default function ExperimentsPage() {
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <BackButton />
+            <ButonInapoi />
             <h1 style={{ fontSize: 28, fontWeight: 900, margin: 0 }}>Experimente — operații simple</h1>
           </div>
           <div style={{ display: "flex", gap: 8 }}>

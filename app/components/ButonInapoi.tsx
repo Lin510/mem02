@@ -3,7 +3,7 @@
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-export default function BackButton({ href = "/" }: { href?: string }) {
+export default function ButonInapoi({ href = "/" }: { href?: string }) {
   const router = useRouter();
   const pathname = usePathname();
 

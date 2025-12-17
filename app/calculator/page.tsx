@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import BackButton from "../components/BackButton";
+import ButonInapoi from "../components/ButonInapoi";
 import Calculator from "../components/Calculator";
 export default function CalculatorPage() {
   return (
@@ -9,7 +9,7 @@ export default function CalculatorPage() {
       <div style={{ maxWidth: 980, margin: "0 auto", padding: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <BackButton />
+            <ButonInapoi />
             <h1 style={{ fontSize: 28, fontWeight: 900, margin: 0 }}>Calculator</h1>
           </div>
           {/* local back button removed; use BackButton before title */}
