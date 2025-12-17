@@ -17,6 +17,8 @@ export default function MulPage() {
           {/* local back button removed; use BackButton before title */}
         </div>
 
+        <p style={{ textAlign: "center", marginBottom: 20, fontSize: 15, color: "#555" }}>💡 Poți da click pe orice cifră de pe primul rând pentru a face operația de înmulțire.</p>
+
         <Table operation="mul" max={max} grade={2} title={`Înmulțire 1 — ${max}`} />
       </div>
     </div>
