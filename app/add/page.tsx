@@ -26,6 +26,8 @@ export default function AddPage() {
           <button onClick={() => setCls(2)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #222", background: cls === 2 ? "#222" : "#fff", color: cls === 2 ? "#fff" : "#000", fontWeight: 700 }}>Clasa 2 (1–20)</button>
         </div>
 
+        <p style={{ textAlign: "center", marginBottom: 20, fontSize: 15, color: "#555" }}>💡 Poți da click pe orice cifră de pe primul rând pentru a face operația de adunare.</p>
+
         <Table operation="add" max={max} grade={cls} title={`Adunare 1 — ${max}`} />
       </div>
     </div>
