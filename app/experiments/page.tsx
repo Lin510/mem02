@@ -280,7 +280,27 @@ function TwentyBulletsAxis({
 
 export default function ExperimentsPage() {
   const [operation, setOperation] = useState<"add" | "sub" | "mul" | "div">("add");
-  const [divVariant, setDivVariant] = useState<"columns" | "circles">("columns");
+  const variantOptionsByOp: Record<string, string[]> = {
+    add: ["two-lines"],
+    sub: ["20-sloturi"],
+    mul: ["grila"],
+    div: ["columns", "circles"],
+  };
+
+  const variantLabel: Record<string, string> = {
+    "two-lines": "Două linii",
+    "20-sloturi": "20 sloturi (axă)",
+    grila: "Grilă",
+    columns: "Coloane",
+    circles: "Cercuri",
+  };
+
+  const [viewVariantByOp, setViewVariantByOp] = useState<Record<"add" | "sub" | "mul" | "div", string>>({
+    add: "two-lines",
+    sub: "20-sloturi",
+    mul: "grila",
+    div: "columns",
+  });
   const [animate, setAnimate] = useState(false);
   const [max, setMax] = useState<number>(10);
   const [a, setA] = useState<number>(1);
@@ -359,18 +379,27 @@ export default function ExperimentsPage() {
           </div>
         </div>
 
-        {operation === "div" ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-            <div style={{ fontWeight: 700 }}>Vizualizare împărțire:</div>
-            <button onClick={() => setDivVariant("columns")} style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #222", background: divVariant === "columns" ? "#222" : "#fff", color: divVariant === "columns" ? "#fff" : "#000", fontWeight: 700 }}>Coloane</button>
-            <button onClick={() => setDivVariant("circles")} style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #222", background: divVariant === "circles" ? "#222" : "#fff", color: divVariant === "circles" ? "#fff" : "#000", fontWeight: 700 }}>Cercuri</button>
-          </div>
-        ) : null}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontWeight: 700 }}>{(() => {
+            const map: Record<string, string> = { add: "adunare", sub: "scădere", mul: "înmulțire", div: "împărțire" };
+            return `Vizualizare ${map[operation] || "vizualizare"}:`;
+          })()}</div>
+
+          {variantOptionsByOp[operation].map((variantKey) => (
+            <button
+              key={variantKey}
+              onClick={() => setViewVariantByOp({ ...viewVariantByOp, [operation]: variantKey })}
+              style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #222", background: viewVariantByOp[operation] === variantKey ? "#222" : "#fff", color: viewVariantByOp[operation] === variantKey ? "#fff" : "#000", fontWeight: 700 }}
+            >
+              {variantLabel[variantKey] ?? variantKey}
+            </button>
+          ))}
+        </div>
 
         {/* Header */}
         <div className="experiments-grid-header" style={{ display: "grid", gridTemplateColumns: `minmax(320px, 1fr) ${operation === "sub" ? rightColWidth : 380}px`, columnGap: 18, alignItems: "center" }}>
           <div />
-          {operation !== "sub" ? <div style={{ fontWeight: 800, marginBottom: 6 }}>Vizualizare linii & intersecții</div> : null}
+          {null}
         </div>
 
         {/* Rows */}
@@ -409,7 +438,7 @@ export default function ExperimentsPage() {
               rightNode = (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {divisible ? (
-                    divVariant === "columns" ? (
+                    viewVariantByOp[operation] === "columns" ? (
                       <DistributionColumns groups={x} perGroup={q ?? 0} />
                     ) : (
                       <DistributionCircles groups={x} perGroup={q ?? 0} />
@@ -444,14 +473,58 @@ export default function ExperimentsPage() {
                 </div>
               );
             } else if (operation === "add") {
-              // For addition, show two vertical lines with counts `a` and `x` respectively
-              rightNode = (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <TwoVerticalLines left={a} right={x} dotRadius={6} />
-                </div>
-              );
+              // addition: render according to selected variant
+              const v = viewVariantByOp[operation];
+              if (v === "two-lines") {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <TwoVerticalLines left={a} right={x} dotRadius={6} />
+                  </div>
+                );
+              } else {
+                // fallback to grid
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <SmallGrid a={a} b={x} />
+                  </div>
+                );
+              }
+            } else if (operation === "mul") {
+              const v = viewVariantByOp[operation];
+              if (v === "grila") {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <SmallGrid a={a} b={x} />
+                  </div>
+                );
+              } else {
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <SmallGrid a={a} b={x} />
+                  </div>
+                );
+              }
             } else if (operation === "div") {
               // division case handled earlier; keep the `rightNode` already set
+            } else if (operation === "sub") {
+              const v = viewVariantByOp[operation];
+              if (v === "20-sloturi") {
+                rightNode = (
+                  <div style={{ display: "flex", gap: pairGap, alignItems: "center", justifyContent: "flex-start" }}>
+                    {/* x - a */}
+                    <TwentyBulletsAxis available={x} need={a} size={bulletSize} gap={bulletGap} axisGap={axisGap} showAxis />
+                    {/* a - x */}
+                    <TwentyBulletsAxis available={a} need={x} size={bulletSize} gap={bulletGap} axisGap={axisGap} showAxis />
+                  </div>
+                );
+              } else {
+                // fallback to grid
+                rightNode = (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <SmallGrid a={a} b={x} />
+                  </div>
+                );
+              }
             } else {
               rightNode = (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
