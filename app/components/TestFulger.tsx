@@ -47,11 +47,11 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
     return grade === 0 ? 2 : 2;
   }, [grade, operation]);
 
-  function computeAnswer(a: number, b: number) {
+  const computeAnswer = useCallback((a: number, b: number) => {
     if (operation === "add") return a + b;
     if (operation === "sub") return a - b;
     return a * b;
-  }
+  }, [operation]);
 
   function randomInt(min: number, max: number) {
     // inclusive
@@ -256,7 +256,7 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
 
       return ""; // clear answer
     });
-  }, [started, done, idx, total]);
+  }, [started, done, idx, total, computeAnswer]);
 
   // Keyboard support (digits / backspace / enter) WITHOUT focusing a real input
   useEffect(() => {

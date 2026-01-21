@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local scripts and generated assets
+/scripts/*.png
+/scripts/*.py
+/scripts/*.old
+/scripts/.DS_Store
+/scripts/out_axis_focus/

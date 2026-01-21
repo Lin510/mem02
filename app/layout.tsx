@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+// TypeScript may sometimes complain about side-effect CSS imports in the editor.
+// We keep the plain import; if your editor still warns, ensure `global.d.ts` declares
+// `declare module "*.css";` (project already includes it).
+// @ts-expect-error CSS module types provided in global.d.ts
+import "./globals.scss";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,6 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: "Matematică pentru copii | Clasa 0-2",
   description: "Aplicație simplă și distractivă cu tabele colorate, teste fulger și calculator interactiv. Copilul tău exersează matematica în ritmul lui!",
   openGraph: {
@@ -22,6 +27,7 @@ export const metadata: Metadata = {
     siteName: "Matematică pentru copii",
     locale: "ro_RO",
     type: "website",
+    images: ["/og-image.svg", "/opengraph-image"],
   },
   twitter: {
     card: "summary_large_image",
@@ -29,6 +35,10 @@ export const metadata: Metadata = {
     description: "Aplicație simplă și distractivă pentru învățarea matematicii",
   },
 };
+
+// Force static generation for the entire app segment so pages are built as
+// static HTML and hydrate on the client (SPA-like behavior).
+export const dynamic = "force-static";
 
 export default function RootLayout({
   children,
