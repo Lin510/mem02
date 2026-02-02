@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import ButonInapoi from "../components/ButonInapoi";
 import Tabel from "../components/Tabel";
+import TestMaratonMul from "../components/TestMaratonMul";
 export default function MulPage() {
   const max = 10; // fixed max for multiplication (class 2)
 
@@ -18,6 +19,10 @@ export default function MulPage() {
         </div>
 
         <p style={{ textAlign: "center", marginBottom: 20, fontSize: 15, color: "#555" }}>💡 Poți da click pe orice cifră de pe primul rând pentru a face operația de înmulțire.</p>
+
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
+          <TestMaratonMul />
+        </div>
 
         <Tabel operation="mul" max={max} grade={2} title={`Înmulțire 1 — ${max}`} />
       </div>
