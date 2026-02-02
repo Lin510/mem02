@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import ButonInapoi from "../components/ButonInapoi";
 import Calculator from "../components/Calculator";
 export default function CalculatorPage() {

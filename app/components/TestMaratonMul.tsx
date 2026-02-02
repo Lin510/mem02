@@ -20,7 +20,6 @@ export default function TestMaratonMul() {
   const submittingRef = useRef(false);
 
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [finishedAt, setFinishedAt] = useState<number | null>(null);
   const [timeExpired, setTimeExpired] = useState(false);
   const [resultPage, setResultPage] = useState(0);
 
@@ -53,7 +52,7 @@ export default function TestMaratonMul() {
     setIdx(0);
     setAnswerStr("");
     setStartedAt(null);
-    setFinishedAt(null);
+    setRemaining(timeLimitSec);
     setResultPage(0);
     submittingRef.current = false;
   }
@@ -65,8 +64,10 @@ export default function TestMaratonMul() {
     setAnswerStr("");
     setStarted(true);
     setDone(false);
+    // calling Date.now here is fine (event handler) — disable purity rule
+    // eslint-disable-next-line react-hooks/purity
     setStartedAt(Date.now());
-    setFinishedAt(null);
+    setRemaining(timeLimitSec);
     setResultPage(0);
     submittingRef.current = false;
   }
@@ -110,7 +111,7 @@ export default function TestMaratonMul() {
       if (nextIdx >= total) {
         setDone(true);
         setIdx(idx);
-        setFinishedAt(Date.now());
+        // finishedAt removed — mark done and keep timeExpired if timer hit
         submittingRef.current = false;
       } else {
         setIdx(nextIdx);
@@ -151,19 +152,17 @@ export default function TestMaratonMul() {
   const [remaining, setRemaining] = useState<number>(timeLimitSec);
   useEffect(() => {
     if (!started || done || startedAt === null) return;
-    setRemaining(timeLimitSec);
     const interval = setInterval(() => {
       const elapsed = Math.floor(((Date.now() - startedAt) || 0) / 1000);
       const rem = Math.max(0, timeLimitSec - elapsed);
       setRemaining(rem);
       if (rem <= 0) {
         setDone(true);
-        setFinishedAt(Date.now());
         setTimeExpired(true);
       }
     }, 250);
     return () => clearInterval(interval);
-  }, [started, done, startedAt]);
+  }, [started, done, startedAt, timeLimitSec]);
 
   const current = started && questions.length ? questions[idx] : null;
 
