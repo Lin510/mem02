@@ -46,3 +46,4 @@ next-env.d.ts
 /scripts/*.old
 /scripts/.DS_Store
 /scripts/out_axis_focus/
+.env*.local
