@@ -52,41 +52,7 @@ function SmallGrid({ a, b }: { a: number; b: number }) {
   );
 }
 
-function DivisionGrid({ rows, cols, dotRadius = 6, maxWidth = 160, maxHeight = 160 }: { rows: number; cols: number; dotRadius?: number; maxWidth?: number; maxHeight?: number }) {
-  const margin = 8;
-  const r = Math.max(1, rows);
-  const c = Math.max(1, cols);
-
-  const availW = Math.max(40, maxWidth - margin * 2);
-  const availH = Math.max(40, maxHeight - margin * 2);
-
-  const spacingX = c === 1 ? 0 : availW / (c - 1);
-  const spacingY = r === 1 ? 0 : availH / (r - 1);
-
-  const width = maxWidth;
-  const height = maxHeight;
-
-  const xs = Array.from({ length: c }, (_, i) => margin + (c === 1 ? availW / 2 : i * spacingX));
-  const ys = Array.from({ length: r }, (_, i) => margin + (r === 1 ? availH / 2 : i * spacingY));
-
-  return (
-    <svg width={width} height={height} style={{ borderRadius: 8, background: "#fff" }}>
-      {xs.map((x, i) => (
-        <line key={`v-${i}`} x1={x} y1={margin} x2={x} y2={height - margin} stroke="transparent" strokeWidth={0} />
-      ))}
-      {ys.map((y, i) => (
-        <line key={`h-${i}`} x1={margin} y1={y} x2={width - margin} y2={y} stroke="transparent" strokeWidth={0} />
-      ))}
-
-      {xs.map((x, ci) =>
-        ys.map((y, ri) => {
-          const key = `dot-${ci}-${ri}`;
-          return <circle key={key} cx={x} cy={y} r={dotRadius} fill="#222" />;
-        })
-      )}
-    </svg>
-  );
-}
+// DivisionGrid removed (unused) to satisfy ESLint warnings
 function DistributionColumns({ groups, perGroup, dotRadius = 8, maxWidth = 160, maxHeight = 160 }: { groups: number; perGroup: number; dotRadius?: number; maxWidth?: number; maxHeight?: number }) {
   // groups = b (columns), perGroup = q (items per column)
   const margin = 12;
@@ -126,7 +92,6 @@ function DistributionCircles({ groups, perGroup, dotRadius = 6, size = 96 }: { g
   const g = Math.max(1, groups);
   const p = Math.max(0, perGroup);
   const cols = Math.ceil(Math.sqrt(Math.max(1, p)));
-  const rows = Math.ceil(p / cols);
 
   return (
     <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -201,31 +166,7 @@ function BlocksVisualization({ first, second, size = 18, gap = 6 }: { first: num
   );
 }
 
-function GroupsVisualization({ groups, perGroup, dotRadius = 6, groupGap = 18 }: { groups: number; perGroup: number; dotRadius?: number; groupGap?: number }) {
-  // Arată `groups` linii orizontale, fiecare cu `perGroup` puncte
-  const g = Math.max(0, groups);
-  const p = Math.max(0, perGroup);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: groupGap, alignItems: "flex-start" }}>
-      {Array.from({ length: g }).map((_, gi) => (
-        <div key={gi} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {Array.from({ length: p }).map((_, pi) => (
-            <div
-              key={pi}
-              style={{
-                width: dotRadius * 2,
-                height: dotRadius * 2,
-                borderRadius: dotRadius,
-                background: "#222",
-              }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
+// GroupsVisualization removed (unused)
 
 function NumberLineJumps({ step, jumps }: { step: number; jumps: number }) {
   // step = cât sărim, jumps = de câte ori sărim
@@ -448,7 +389,7 @@ export default function ExperimentsPage() {
     mul: "grupuri",
     div: "columns",
   });
-  const [animate, setAnimate] = useState(false);
+  // animation controls removed (unused)
   const [max, setMax] = useState<number>(10);
   const [a, setA] = useState<number>(1);
   const [swapFactors, setSwapFactors] = useState(false);

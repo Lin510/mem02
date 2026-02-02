@@ -41,7 +41,6 @@ export default function Calculator() {
         return;
       }
 
-      // eslint-disable-next-line no-new-func
       const val = Function(`return (${normalized})`)();
       if (typeof val === "number" && Number.isFinite(val)) setResult(String(val));
       else setResult("Err");
