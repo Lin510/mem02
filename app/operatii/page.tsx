@@ -6,7 +6,7 @@ import TestFulgerOperatii from "../components/TestFulgerOperatii";
 import TestMaratonOperatii from "../components/TestMaratonOperatii";
 
 // Generator de operații random
-function generateOperation(): { expression: string; result: number } {
+function generateOperation(): { expression: string; result: number; steps: string[] } {
   const ops = ["+", "-", "*", "/"] as const;
   
   const num1 = Math.floor(Math.random() * 10) + 1;
@@ -33,10 +33,46 @@ function generateOperation(): { expression: string; result: number } {
     return generateOperation();
   }
   
+  // Calculăm pașii și validăm că nu avem rezultate intermediare negative
+  const steps: string[] = [];
+  const priorityOps = ["*", "/"];
+  
+  if (priorityOps.includes(op2) && !priorityOps.includes(op1)) {
+    // op2 are prioritate, se execută prima
+    const intermediate = eval(`${num2} ${op2} ${num3}`);
+    if (!Number.isInteger(intermediate) || intermediate < 0) {
+      return generateOperation();
+    }
+    const displayOp1 = op1 === "+" ? "+" : "−";
+    const displayOp2 = op2 === "*" ? "×" : "÷";
+    steps.push(`Pasul 1: ${num2} ${displayOp2} ${num3} = ${intermediate}`);
+    steps.push(`Pasul 2: ${num1} ${displayOp1} ${intermediate} = ${result}`);
+  } else if (priorityOps.includes(op1) && !priorityOps.includes(op2)) {
+    // op1 are prioritate, se execută prima
+    const intermediate = eval(`${num1} ${op1} ${num2}`);
+    if (!Number.isInteger(intermediate) || intermediate < 0) {
+      return generateOperation();
+    }
+    const displayOp1 = op1 === "*" ? "×" : "÷";
+    const displayOp2 = op2 === "+" ? "+" : "−";
+    steps.push(`Pasul 1: ${num1} ${displayOp1} ${num2} = ${intermediate}`);
+    steps.push(`Pasul 2: ${intermediate} ${displayOp2} ${num3} = ${result}`);
+  } else {
+    // Aceeași prioritate, de la stânga la dreapta
+    const intermediate = eval(`${num1} ${op1} ${num2}`);
+    if (!Number.isInteger(intermediate) || intermediate < 0) {
+      return generateOperation();
+    }
+    const displayOp1 = op1 === "*" ? "×" : op1 === "/" ? "÷" : op1 === "+" ? "+" : "−";
+    const displayOp2 = op2 === "*" ? "×" : op2 === "/" ? "÷" : op2 === "+" ? "+" : "−";
+    steps.push(`Pasul 1: ${num1} ${displayOp1} ${num2} = ${intermediate}`);
+    steps.push(`Pasul 2: ${intermediate} ${displayOp2} ${num3} = ${result}`);
+  }
+  
   // Înlocuim simbolurile pentru afișare
   const displayExpression = expression.replace(/\*/g, '×').replace(/\//g, '÷');
   
-  return { expression: displayExpression, result };
+  return { expression: displayExpression, result, steps };
 }
 
 // Generator de exemple pentru explicații
@@ -97,7 +133,7 @@ function generateExample(): { display: string; steps: string; wrongSteps: string
 }
 
 export default function OperatiiPage() {
-  const [currentOp, setCurrentOp] = useState<{ expression: string; result: number } | null>(null);
+  const [currentOp, setCurrentOp] = useState<{ expression: string; result: number; steps: string[] } | null>(null);
   const [example, setExample] = useState<{ display: string; steps: string; wrongSteps: string; result: number; wrong: number } | null>(null);
   const [userAnswer, setUserAnswer] = useState("");
   const [showResult, setShowResult] = useState(false);
@@ -184,8 +220,18 @@ export default function OperatiiPage() {
                     {isCorrect ? (
                       <div className="text-lg font-bold text-green-600">✓ Corect!</div>
                     ) : (
-                      <div className="text-lg font-bold text-red-600">
-                        ✗ Greșit. Răspunsul corect: {currentOp.result}
+                      <div>
+                        <div className="text-lg font-bold text-red-600">
+                          ✗ Greșit. Răspunsul corect: {currentOp.result}
+                        </div>
+                        {currentOp && currentOp.steps && currentOp.steps.length > 0 && (
+                          <div className="mt-3 rounded-lg bg-red-50 border border-red-200 p-3">
+                            <div className="text-sm font-semibold text-red-700 mb-2">Rezolvare:</div>
+                            {currentOp.steps.map((step, idx) => (
+                              <div key={idx} className="text-sm text-red-600">{step}</div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                     

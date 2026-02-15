@@ -29,13 +29,16 @@ function generateOperation(): { expression: string; result: number; steps: strin
     return generateOperation();
   }
   
-  // Calculăm pașii
+  // Calculăm pașii și validăm că nu avem rezultate intermediare negative
   const steps: string[] = [];
   const priorityOps = ["*", "/"];
   
   if (priorityOps.includes(op2) && !priorityOps.includes(op1)) {
     // op2 are prioritate, se execută prima
     const intermediate = eval(`${num2} ${op2} ${num3}`);
+    if (!Number.isInteger(intermediate) || intermediate < 0) {
+      return generateOperation();
+    }
     const displayOp1 = op1 === "+" ? "+" : "−";
     const displayOp2 = op2 === "*" ? "×" : "÷";
     steps.push(`Pasul 1: ${num2} ${displayOp2} ${num3} = ${intermediate}`);
@@ -43,6 +46,9 @@ function generateOperation(): { expression: string; result: number; steps: strin
   } else if (priorityOps.includes(op1) && !priorityOps.includes(op2)) {
     // op1 are prioritate, se execută prima
     const intermediate = eval(`${num1} ${op1} ${num2}`);
+    if (!Number.isInteger(intermediate) || intermediate < 0) {
+      return generateOperation();
+    }
     const displayOp1 = op1 === "*" ? "×" : "÷";
     const displayOp2 = op2 === "+" ? "+" : "−";
     steps.push(`Pasul 1: ${num1} ${displayOp1} ${num2} = ${intermediate}`);
@@ -50,6 +56,9 @@ function generateOperation(): { expression: string; result: number; steps: strin
   } else {
     // Aceeași prioritate, de la stânga la dreapta
     const intermediate = eval(`${num1} ${op1} ${num2}`);
+    if (!Number.isInteger(intermediate) || intermediate < 0) {
+      return generateOperation();
+    }
     const displayOp1 = op1 === "*" ? "×" : op1 === "/" ? "÷" : op1 === "+" ? "+" : "−";
     const displayOp2 = op2 === "*" ? "×" : op2 === "/" ? "÷" : op2 === "+" ? "+" : "−";
     steps.push(`Pasul 1: ${num1} ${displayOp1} ${num2} = ${intermediate}`);
