@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://mem02.vercel.app"),
   title: "Matematică pentru copii | Clasa 0-2",
   description: "Aplicație simplă și distractivă cu tabele colorate, teste fulger și calculator interactiv. Copilul tău exersează matematica în ritmul lui!",
   openGraph: {
