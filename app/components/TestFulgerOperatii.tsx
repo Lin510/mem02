@@ -3,9 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AnswerPad from "./AnswerPad";
 
-type QA = { expression: string; answer: number | null; correct: boolean | null; result: number };
+type QA = { expression: string; answer: number | null; correct: boolean | null; result: number; steps: string[] };
 
-function generateOperation(): { expression: string; result: number } {
+function generateOperation(): { expression: string; result: number; steps: string[] } {
   const ops = ["+", "-", "*", "/"] as const;
   
   const num1 = Math.floor(Math.random() * 10) + 1;
@@ -29,10 +29,37 @@ function generateOperation(): { expression: string; result: number } {
     return generateOperation();
   }
   
+  // Calculăm pașii
+  const steps: string[] = [];
+  const priorityOps = ["*", "/"];
+  
+  if (priorityOps.includes(op2) && !priorityOps.includes(op1)) {
+    // op2 are prioritate, se execută prima
+    const intermediate = eval(`${num2} ${op2} ${num3}`);
+    const displayOp1 = op1 === "+" ? "+" : "−";
+    const displayOp2 = op2 === "*" ? "×" : "÷";
+    steps.push(`Pasul 1: ${num2} ${displayOp2} ${num3} = ${intermediate}`);
+    steps.push(`Pasul 2: ${num1} ${displayOp1} ${intermediate} = ${result}`);
+  } else if (priorityOps.includes(op1) && !priorityOps.includes(op2)) {
+    // op1 are prioritate, se execută prima
+    const intermediate = eval(`${num1} ${op1} ${num2}`);
+    const displayOp1 = op1 === "*" ? "×" : "÷";
+    const displayOp2 = op2 === "+" ? "+" : "−";
+    steps.push(`Pasul 1: ${num1} ${displayOp1} ${num2} = ${intermediate}`);
+    steps.push(`Pasul 2: ${intermediate} ${displayOp2} ${num3} = ${result}`);
+  } else {
+    // Aceeași prioritate, de la stânga la dreapta
+    const intermediate = eval(`${num1} ${op1} ${num2}`);
+    const displayOp1 = op1 === "*" ? "×" : op1 === "/" ? "÷" : op1 === "+" ? "+" : "−";
+    const displayOp2 = op2 === "*" ? "×" : op2 === "/" ? "÷" : op2 === "+" ? "+" : "−";
+    steps.push(`Pasul 1: ${num1} ${displayOp1} ${num2} = ${intermediate}`);
+    steps.push(`Pasul 2: ${intermediate} ${displayOp2} ${num3} = ${result}`);
+  }
+  
   // Înlocuim simbolurile pentru afișare
   const displayExpression = expression.replace(/\*/g, '×').replace(/\//g, '÷');
   
-  return { expression: displayExpression, result };
+  return { expression: displayExpression, result, steps };
 }
 
 export default function TestFulgerOperatii() {
@@ -55,6 +82,7 @@ export default function TestFulgerOperatii() {
       qs.push({ 
         expression: op.expression, 
         result: op.result,
+        steps: op.steps,
         answer: null, 
         correct: null 
       });
@@ -228,20 +256,32 @@ export default function TestFulgerOperatii() {
             {questions.map((q, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3"
+                className={`rounded-lg p-3 ${
+                  q.correct 
+                    ? 'bg-green-50 border border-green-200' 
+                    : 'bg-red-50 border border-red-200'
+                }`}
               >
-                <div>
-                  <div className="font-bold">{q.expression} = {q.result}</div>
-                  <div className="text-sm text-slate-600">
-                    Răspunsul tău: {q.answer === null ? "—" : q.answer}
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className={`font-bold ${q.correct ? 'text-green-700' : 'text-red-700'}`}>
+                      {q.expression} = {q.result}
+                    </div>
+                    <div className={`text-sm ${q.correct ? 'text-green-600' : 'text-red-600'}`}>
+                      Răspunsul tău: {q.answer === null ? "—" : q.answer}
+                    </div>
+                    {!q.correct && q.steps && q.steps.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-red-200">
+                        <div className="text-xs font-semibold text-red-700 mb-1">Rezolvare:</div>
+                        {q.steps.map((step, idx) => (
+                          <div key={idx} className="text-xs text-red-600">{step}</div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div>
-                  {q.correct ? (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-green-500 text-white font-bold">✓</div>
-                  ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-red-500 text-white font-bold">✗</div>
-                  )}
+                  <div className={`ml-3 text-2xl font-bold ${q.correct ? 'text-green-600' : 'text-red-600'}`}>
+                    {q.correct ? '✓' : '✗'}
+                  </div>
                 </div>
               </div>
             ))}

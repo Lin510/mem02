@@ -3,9 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AnswerPad from "./AnswerPad";
 
-type QA = { expression: string; answer: number | null; correct: boolean | null; result: number };
+type QA = { expression: string; answer: number | null; correct: boolean | null; result: number; steps: string[] };
 
-function generateOperation(): { expression: string; result: number } {
+function generateOperation(): { expression: string; result: number; steps: string[] } {
   const ops = ["+", "-", "*", "/"] as const;
   
   const num1 = Math.floor(Math.random() * 10) + 1;
@@ -26,10 +26,37 @@ function generateOperation(): { expression: string; result: number } {
     return generateOperation();
   }
   
+  // Calculăm pașii
+  const steps: string[] = [];
+  const priorityOps = ["*", "/"];
+  
+  if (priorityOps.includes(op2) && !priorityOps.includes(op1)) {
+    // op2 are prioritate, se execută prima
+    const intermediate = eval(`${num2} ${op2} ${num3}`);
+    const displayOp1 = op1 === "+" ? "+" : "−";
+    const displayOp2 = op2 === "*" ? "×" : "÷";
+    steps.push(`Pasul 1: ${num2} ${displayOp2} ${num3} = ${intermediate}`);
+    steps.push(`Pasul 2: ${num1} ${displayOp1} ${intermediate} = ${result}`);
+  } else if (priorityOps.includes(op1) && !priorityOps.includes(op2)) {
+    // op1 are prioritate, se execută prima
+    const intermediate = eval(`${num1} ${op1} ${num2}`);
+    const displayOp1 = op1 === "*" ? "×" : "÷";
+    const displayOp2 = op2 === "+" ? "+" : "−";
+    steps.push(`Pasul 1: ${num1} ${displayOp1} ${num2} = ${intermediate}`);
+    steps.push(`Pasul 2: ${intermediate} ${displayOp2} ${num3} = ${result}`);
+  } else {
+    // Aceeași prioritate, de la stânga la dreapta
+    const intermediate = eval(`${num1} ${op1} ${num2}`);
+    const displayOp1 = op1 === "*" ? "×" : op1 === "/" ? "÷" : op1 === "+" ? "+" : "−";
+    const displayOp2 = op2 === "*" ? "×" : op2 === "/" ? "÷" : op2 === "+" ? "+" : "−";
+    steps.push(`Pasul 1: ${num1} ${displayOp1} ${num2} = ${intermediate}`);
+    steps.push(`Pasul 2: ${intermediate} ${displayOp2} ${num3} = ${result}`);
+  }
+  
   // Înlocuim simbolurile pentru afișare
   const displayExpression = expression.replace(/\*/g, '×').replace(/\//g, '÷');
   
-  return { expression: displayExpression, result };
+  return { expression: displayExpression, result, steps };
 }
 
 export default function TestMaratonOperatii() {
@@ -67,6 +94,7 @@ export default function TestMaratonOperatii() {
       pool.push({
         expression: op.expression,
         result: op.result,
+        steps: op.steps,
         answer: null,
         correct: null,
       });
@@ -316,12 +344,38 @@ export default function TestMaratonOperatii() {
                             const ok = q.correct === true;
                             const globalIndex = start + i;
                             return (
-                              <div key={globalIndex} style={{ display: "flex", justifyContent: "space-between", padding: 8, borderRadius: 8, background: "#fbfbfb", border: "1px solid #eee" }}>
-                                <div>
-                                  <div style={{ fontWeight: 700 }}>{q.expression} = {exp}</div>
-                                  <div style={{ fontSize: 13, color: "#333" }}>răspuns: {user}</div>
+                              <div 
+                                key={globalIndex} 
+                                style={{ 
+                                  display: "flex", 
+                                  flexDirection: "column",
+                                  padding: 12, 
+                                  borderRadius: 8, 
+                                  background: ok ? "#f0fdf4" : "#fef2f2",
+                                  border: ok ? "1px solid #bbf7d0" : "1px solid #fecaca"
+                                }}
+                              >
+                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 700, color: ok ? "#15803d" : "#b91c1c" }}>
+                                      {q.expression} = {exp}
+                                    </div>
+                                    <div style={{ fontSize: 13, color: ok ? "#16a34a" : "#dc2626" }}>
+                                      Răspunsul tău: {user}
+                                    </div>
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", fontSize: 24, fontWeight: 800, color: ok ? "#16a34a" : "#dc2626" }}>
+                                    {ok ? "✓" : "✗"}
+                                  </div>
                                 </div>
-                                <div style={{ display: "flex", alignItems: "center" }}>{ok ? <div style={{ width: 36, height: 28, borderRadius: 6, background: "#2ecc71", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>✓</div> : <div style={{ width: 36, height: 28, borderRadius: 6, background: "#e74c3c", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>✕</div>}</div>
+                                {!ok && q.steps && q.steps.length > 0 && (
+                                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #fecaca" }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: "#b91c1c", marginBottom: 4 }}>Rezolvare:</div>
+                                    {q.steps.map((step, idx) => (
+                                      <div key={idx} style={{ fontSize: 11, color: "#dc2626" }}>{step}</div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
