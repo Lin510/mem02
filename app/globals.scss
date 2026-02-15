@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   --background: #ffffff;
@@ -19,7 +17,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
 /* Utility to make table cells consistent if needed */
@@ -42,10 +40,6 @@ body {
 .experiments .experiments-grid-header,
 .experiments .experiments-grid-rows {
   align-items: center;
-}
-
-.experiments .left-node {
-  /* left text already bold; scale for small screens */
 }
 
 .experiments .right-node {

@@ -13,6 +13,13 @@ Build & developer workflows
 - Dev: `npm run dev` (next dev). Build: `npm run build` && `npm run start`. Lint: `npm run lint`.
 - TypeScript: `strict: true` in `tsconfig.json`. Path alias `@/*` → `./*` is used; keep strict typing.
 
+Git workflow
+- **Always work on the `work` branch** — this is a local-only branch for development.
+- When code is stable on `work`, switch to `main` and merge: `git checkout main && git merge work`.
+- **Push ONLY the `main` branch**: `git push origin main`.
+- **NEVER push the `work` branch** — avoid any `git push origin work` or similar commands.
+- The `work` branch must remain local and is never pushed to remote.
+
 Project-specific patterns (concrete, observable)
 - Client components must include `"use client"` when using state or browser APIs (search `app/components/*`).
 - Inline styles are the norm — preserve this style unless intentionally centralizing styles.

@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-// TypeScript may sometimes complain about side-effect CSS imports in the editor.
-// We keep the plain import; if your editor still warns, ensure `global.d.ts` declares
-// `declare module "*.css";` (project already includes it).
 import "./globals.scss";
 
 const geistSans = Geist({

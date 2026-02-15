@@ -3,9 +3,10 @@
 import React from "react";
 import ButonInapoi from "../components/ButonInapoi";
 import Tabel from "../components/Tabel";
-import TestMaratonMul from "../components/TestMaratonMul";
-export default function MulPage() {
-  const max = 10; // fixed max for multiplication (class 2)
+import TestMaratonDiv from "../components/TestMaratonDiv";
+
+export default function DivPage() {
+  const max = 10; // fixed max for division (class 2)
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -13,18 +14,17 @@ export default function MulPage() {
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <ButonInapoi />
-            <h1 className="m-0 text-[28px] font-black tracking-tight">Înmulțire</h1>
+            <h1 className="m-0 text-[28px] font-black tracking-tight">Împărțire</h1>
           </div>
-          {/* local back button removed; use BackButton before title */}
         </div>
 
-        <p className="mb-6 text-center text-sm text-slate-600">💡 Poți da click pe orice cifră de pe primul rând pentru a face operația de înmulțire.</p>
+        <p className="mb-6 text-center text-sm text-slate-600">💡 Poți da click pe orice cifră de pe primul rând pentru a face operația de împărțire.</p>
 
         <div className="mb-5 flex justify-center">
-          <TestMaratonMul />
+          <TestMaratonDiv />
         </div>
 
-        <Tabel operation="mul" max={max} grade={2} title={`Înmulțire 1 — ${max}`} />
+        <Tabel operation="div" max={max} grade={2} title={`Împărțire 1 — ${max}`} />
       </div>
     </div>
   );

@@ -103,16 +103,25 @@ export default function Calculator() {
   ];
 
   return (
-    <div style={{ marginTop: 16, textAlign: "center" }}>
-      <div style={{ display: "inline-block", padding: 12, borderRadius: 8, border: "1px solid #eee", minWidth: 240 }}>
-        <div style={{ textAlign: "right", minHeight: 36, fontSize: 20, fontWeight: 800 }}>{expr || "0"}</div>
-        <div style={{ textAlign: "right", color: result ? "#111" : "#999", minHeight: 56, fontSize: 40, fontWeight: 900 }}>{result === null ? "" : result}</div>
+    <div className="mt-4 flex justify-center">
+      <div className="w-full max-w-[360px] rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="min-h-[36px] break-words text-right text-[20px] font-extrabold text-slate-700">{expr || "0"}</div>
+        <div className={`min-h-[56px] break-words text-right text-[40px] font-black tracking-tight ${result ? "text-slate-900" : "text-slate-300"}`}>{result === null ? "" : result}</div>
 
-        <div style={{ marginTop: 8 }}>
+        <div className="mt-2">
           {keypad.map((row, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 8 }}>
+            <div key={i} className="mt-2 flex justify-center gap-2">
               {row.map((k) => (
-                <button key={k} onClick={() => press(k)} style={{ width: 56, height: 44, borderRadius: 6, border: "1px solid #ccc", background: k === "=" ? "#222" : "#fff", color: k === "=" ? "#fff" : "#000", fontWeight: 700 }}>
+                <button
+                  key={k}
+                  onClick={() => press(k)}
+                  className={`h-11 w-16 rounded-xl text-sm font-extrabold shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+                    k === "="
+                      ? "bg-slate-900 text-white ring-black/10 hover:bg-slate-800"
+                      : "bg-white text-slate-900 ring-slate-200 hover:bg-slate-50"
+                  }`}
+                  type="button"
+                >
                   {k}
                 </button>
               ))}
