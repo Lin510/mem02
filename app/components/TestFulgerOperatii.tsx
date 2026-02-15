@@ -6,14 +6,18 @@ import AnswerPad from "./AnswerPad";
 type QA = { expression: string; answer: number | null; correct: boolean | null; result: number };
 
 function generateOperation(): { expression: string; result: number } {
-  const ops = ["+", "-", "*"] as const; // Excludem împărțirea pentru simplitate
+  const ops = ["+", "-", "*", "/"] as const;
   
   const num1 = Math.floor(Math.random() * 10) + 1;
   const num2 = Math.floor(Math.random() * 10) + 1;
   const num3 = Math.floor(Math.random() * 10) + 1;
   
+  // Selectăm două operații DIFERITE
   const op1 = ops[Math.floor(Math.random() * ops.length)];
-  const op2 = ops[Math.floor(Math.random() * ops.length)];
+  let op2 = ops[Math.floor(Math.random() * ops.length)];
+  while (op2 === op1) {
+    op2 = ops[Math.floor(Math.random() * ops.length)];
+  }
   
   const expression = `${num1} ${op1} ${num2} ${op2} ${num3}`;
   
@@ -25,7 +29,10 @@ function generateOperation(): { expression: string; result: number } {
     return generateOperation();
   }
   
-  return { expression, result };
+  // Înlocuim simbolurile pentru afișare
+  const displayExpression = expression.replace(/\*/g, '×').replace(/\//g, '÷');
+  
+  return { expression: displayExpression, result };
 }
 
 export default function TestFulgerOperatii() {

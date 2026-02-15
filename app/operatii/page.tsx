@@ -7,14 +7,18 @@ import TestMaratonOperatii from "../components/TestMaratonOperatii";
 
 // Generator de operații random
 function generateOperation(): { expression: string; result: number } {
-  const ops = ["+", "-", "*"] as const;
+  const ops = ["+", "-", "*", "/"] as const;
   
   const num1 = Math.floor(Math.random() * 10) + 1;
   const num2 = Math.floor(Math.random() * 10) + 1;
   const num3 = Math.floor(Math.random() * 10) + 1;
   
+  // Selectăm două operații DIFERITE
   const op1 = ops[Math.floor(Math.random() * ops.length)];
-  const op2 = ops[Math.floor(Math.random() * ops.length)];
+  let op2 = ops[Math.floor(Math.random() * ops.length)];
+  while (op2 === op1) {
+    op2 = ops[Math.floor(Math.random() * ops.length)];
+  }
   
   const expression = `${num1} ${op1} ${num2} ${op2} ${num3}`;
   let result: number;
@@ -29,15 +33,82 @@ function generateOperation(): { expression: string; result: number } {
     return generateOperation();
   }
   
-  return { expression, result };
+  // Înlocuim simbolurile pentru afișare
+  const displayExpression = expression.replace(/\*/g, '×').replace(/\//g, '÷');
+  
+  return { expression: displayExpression, result };
+}
+
+// Generator de exemple pentru explicații
+function generateExample(): { display: string; steps: string; wrongSteps: string; result: number; wrong: number } {
+  const ops = ["+", "-", "*", "/"] as const;
+  const priorityOps = ["*", "/"] as const;
+  const nonPriorityOps = ["+", "-"] as const;
+  
+  const num1 = Math.floor(Math.random() * 9) + 1;
+  const num2 = Math.floor(Math.random() * 9) + 1;
+  const num3 = Math.floor(Math.random() * 9) + 1;
+  
+  // Prima operație: prioritate (+, -)
+  const op1 = nonPriorityOps[Math.floor(Math.random() * nonPriorityOps.length)];
+  // A doua operație: prioritate înaltă (*, /)
+  const op2 = priorityOps[Math.floor(Math.random() * priorityOps.length)];
+  
+  const expression = `${num1} ${op1} ${num2} ${op2} ${num3}`;
+  
+  let result: number;
+  let intermediate: number;
+  let wrongIntermediate: number;
+  let wrong: number;
+  
+  try {
+    result = eval(expression);
+    
+    // Calculăm valoarea intermediară (op2 se execută prima - CORECT)
+    intermediate = eval(`${num2} ${op2} ${num3}`);
+    
+    // Calculăm valoarea intermediară greșită (op1 se execută prima - GREȘIT)
+    wrongIntermediate = eval(`${num1} ${op1} ${num2}`);
+    
+    // Calculăm rezultatul greșit (dacă ar fi de la stânga la dreapta)
+    wrong = eval(`${wrongIntermediate} ${op2} ${num3}`);
+    
+    if (!Number.isInteger(result) || result < 0 || result > 100 || 
+        !Number.isInteger(intermediate) || !Number.isInteger(wrong) ||
+        !Number.isInteger(wrongIntermediate) ||
+        result === wrong) {
+      return generateExample();
+    }
+  } catch {
+    return generateExample();
+  }
+  
+  const displayExpression = expression.replace(/\*/g, '×').replace(/\//g, '÷');
+  
+  // Pasul corect: facem întâi înmulțirea/împărțirea
+  const displayOp2Symbol = op2 === '*' ? '×' : '÷';
+  const displayOp1Symbol = op1 === '+' ? '+' : '−';
+  const steps = `${num1} ${displayOp1Symbol} ${intermediate}`;
+  
+  // Pasul greșit: facem întâi adunarea/scăderea (de la stânga la dreapta)
+  const wrongSteps = `${wrongIntermediate} ${displayOp2Symbol} ${num3}`;
+  
+  return { display: displayExpression, steps, wrongSteps, result, wrong };
 }
 
 export default function OperatiiPage() {
-  const [currentOp, setCurrentOp] = useState(() => generateOperation());
+  const [currentOp, setCurrentOp] = useState<{ expression: string; result: number } | null>(null);
+  const [example, setExample] = useState<{ display: string; steps: string; wrongSteps: string; result: number; wrong: number } | null>(null);
   const [userAnswer, setUserAnswer] = useState("");
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showTests, setShowTests] = useState(false);
+
+  // Generăm operația și exemplul doar pe client după mount pentru a evita hydration mismatch
+  React.useEffect(() => {
+    setCurrentOp(generateOperation());
+    setExample(generateExample());
+  }, []);
 
   const handleNewOperation = useCallback(() => {
     setCurrentOp(generateOperation());
@@ -47,12 +118,13 @@ export default function OperatiiPage() {
   }, []);
 
   const handleSubmit = useCallback(() => {
+    if (!currentOp) return;
     const answer = parseInt(userAnswer, 10);
     if (Number.isFinite(answer)) {
       setIsCorrect(answer === currentOp.result);
       setShowResult(true);
     }
-  }, [userAnswer, currentOp.result]);
+  }, [userAnswer, currentOp]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -65,7 +137,7 @@ export default function OperatiiPage() {
         </div>
 
         <p className="mb-6 text-center text-sm text-slate-600">
-          💡 Rezolvă operațiile respectând ordinea: înmulțire înainte de adunare și scădere.
+          💡 Rezolvă operațiile respectând ordinea: înmulțire și împărțire înainte de adunare și scădere.
         </p>
 
         <div className="mb-5 flex justify-center gap-3">
@@ -74,9 +146,14 @@ export default function OperatiiPage() {
 
         {!showTests ? (
           <div className="mx-auto max-w-[600px]">
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <div className="mb-6 text-center">
-                <div className="mb-4 text-3xl font-black">{currentOp.expression} = ?</div>
+            {!currentOp ? (
+              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 text-center">
+                <div className="text-slate-400">Se generează operația...</div>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                <div className="mb-6 text-center">
+                  <div className="mb-4 text-3xl font-black">{currentOp.expression} = ?</div>
                 
                 <div className="flex items-center justify-center gap-3">
                   <input
@@ -131,16 +208,30 @@ export default function OperatiiPage() {
                 </button>
               </div>
             </div>
+            )}
 
-            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              <div className="mb-2 font-bold">Ordinea operațiilor:</div>
-              <ol className="ml-4 list-decimal space-y-1">
-                <li>Înmulțire (×)</li>
-                <li>Adunare (+) și Scădere (−)</li>
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6 text-center">
+              <div className="mb-3 text-lg font-bold text-slate-900">Ordinea operațiilor:</div>
+              <ol className="mb-4 inline-block text-left text-base text-slate-700 space-y-2">
+                <li><span className="font-bold">1.</span> Înmulțire (×) și Împărțire (÷)</li>
+                <li><span className="font-bold">2.</span> Adunare (+) și Scădere (−)</li>
               </ol>
-              <div className="mt-3 text-xs text-slate-500">
-                Exemplu: 2 + 3 × 4 = 2 + 12 = 14 (nu 20!)
-              </div>
+              {example && (
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <div className="text-sm font-semibold text-slate-600 mb-3">Exemplu:</div>
+                  <div className="text-2xl font-black text-slate-900 mb-4">{example.display} = ?</div>
+                  
+                  <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="text-xs font-semibold text-green-700 mb-1">✓ CORECT:</div>
+                    <div className="text-lg text-green-700">{example.steps} = <span className="font-bold">{example.result}</span></div>
+                  </div>
+                  
+                  <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                    <div className="text-xs font-semibold text-red-700 mb-1">✗ GREȘIT:</div>
+                    <div className="text-lg text-red-700">{example.wrongSteps} = <span className="font-bold">{example.wrong}</span></div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (
