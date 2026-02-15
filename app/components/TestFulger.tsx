@@ -145,8 +145,8 @@ export default function TestFulger({ grade, operation, maxFactor = 10, embedded 
 
     while (qs.length < count && attempts < 500) {
       attempts++;
-      let a: number;
-      let b: number;
+      let a: number = 1;
+      let b: number = 1;
 
       if (operation === "add") {
         a = randomInt(1, selectedMax);
@@ -178,6 +178,11 @@ export default function TestFulger({ grade, operation, maxFactor = 10, embedded 
             b = selectedMax;
           }
         }
+      } else {
+        // subtraction - should not reach here in normal flow
+        // but initialize for safety
+        a = randomInt(1, selectedMax);
+        b = randomInt(1, a);
       }
 
       const key = operation === "add" || operation === "mul" ? `${Math.min(a, b)},${Math.max(a, b)}` : `${a},${b}`;

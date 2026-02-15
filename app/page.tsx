@@ -54,6 +54,13 @@ export default function Home() {
           </Link>
 
           <Link
+            href="/operatii"
+            className="inline-flex items-center justify-center rounded-lg border border-[#222] bg-white px-4 py-2.5 text-sm font-extrabold text-black no-underline hover:bg-[#f7f7f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30"
+          >
+            Operații
+          </Link>
+
+          <Link
             href="/experiments"
             className="col-span-2 inline-flex items-center justify-center rounded-lg border border-[#222] bg-white px-4 py-2.5 text-sm font-extrabold text-black no-underline hover:bg-[#f7f7f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30 min-[420px]:col-span-3 sm:col-auto"
           >
@@ -96,6 +103,11 @@ export default function Home() {
                 title: "Calculator",
                 desc: "Instrument simplu pentru calcule rapide și verificarea rezultatelor.",
                 href: "/calculator",
+              },
+              {
+                title: "Operații",
+                desc: "Exersează ordinea operațiilor cu expresii matematice (înmulțire înainte de adunare/scădere).",
+                href: "/operatii",
               },
               {
                 title: "Experimente",
