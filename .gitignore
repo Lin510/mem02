@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# editor settings
+.vscode/
+
 # Local scripts and generated assets
 /scripts/*.png
 /scripts/*.py

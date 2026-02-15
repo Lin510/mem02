@@ -18,77 +18,65 @@ export default function AnswerPad({ answerStr, onDigit, onBackspace, onSubmit, d
       <div>
         <div
           aria-label="Răspuns"
-          style={{
-            minHeight: 56,
-            width: "100%",
-            boxSizing: "border-box",
-            borderRadius: 12,
-            border: "2px solid rgba(0,0,0,0.12)",
-            background: "rgba(0,0,0,0.02)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "10px 14px",
-            fontSize: "1.8rem",
-            fontWeight: 800,
-            letterSpacing: "0.12em",
-          }}
+          className="flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-slate-50 px-[14px] py-[10px] text-[1.8rem] font-extrabold tracking-[0.12em] ring-1 ring-slate-200"
         >
           {answerStr.length ? (
             <span>{answerStr}</span>
           ) : (
-            <span style={{ opacity: 0.25, letterSpacing: 0.06, fontWeight: 700 }}>—</span>
+            <span className="font-bold tracking-[0.06em] opacity-25">—</span>
           )}
         </div>
       </div>
 
       {/* Keypad */}
-      <div style={{ marginTop: 14 }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 10,
-            width: "100%",
-          }}
-        >
+      <div className="mt-3.5">
+        <div className="grid w-full grid-cols-3 gap-2.5">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
             <button
               key={n}
               onClick={() => onDigit(n)}
-              style={keyBtnStyle}
+              className="h-[62px] select-none rounded-2xl bg-white text-[1.5rem] font-black shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
               aria-label={`Cifra ${n}`}
+              type="button"
             >
               {n}
             </button>
           ))}
 
           {/* bottom row: back, 0, enter */}
-          <button onClick={onBackspace} style={keyBtnStyle} aria-label="Șterge" title="Șterge (Backspace)">
+          <button
+            onClick={onBackspace}
+            className="h-[62px] select-none rounded-2xl bg-white text-[1.5rem] font-black shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            aria-label="Șterge"
+            title="Șterge (Backspace)"
+            type="button"
+          >
             ⌫
           </button>
-          <button onClick={() => onDigit(0)} style={keyBtnStyle} aria-label="Cifra 0">
+          <button
+            onClick={() => onDigit(0)}
+            className="h-[62px] select-none rounded-2xl bg-white text-[1.5rem] font-black shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            aria-label="Cifra 0"
+            type="button"
+          >
             0
           </button>
           <button
             onClick={onSubmit}
             disabled={disabled}
-            style={{
-              ...keyBtnStyle,
-              background: disabled ? "rgba(0,0,0,0.06)" : "#111",
-              color: disabled ? "rgba(0,0,0,0.35)" : "#fff",
-              borderColor: "rgba(0,0,0,0.18)",
-              cursor: disabled ? "not-allowed" : "pointer",
-            }}
+            className={`h-[62px] select-none rounded-2xl text-[1.5rem] font-black shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+              disabled ? "cursor-not-allowed bg-slate-100 text-slate-400 ring-slate-200" : "cursor-pointer bg-slate-900 text-white ring-black/10 hover:bg-slate-800"
+            }`}
             aria-label="Verifică"
             title="Verifică (Enter)"
+            type="button"
           >
             ✓
           </button>
         </div>
 
         {showHint && (
-          <div style={{ marginTop: 10, fontSize: "0.9rem", opacity: 0.65 }}>
+          <div className="mt-2.5 text-[0.9rem] text-slate-600">
             💡 Poți folosi și tastatura: cifre, Backspace, Enter.
           </div>
         )}
@@ -96,14 +84,3 @@ export default function AnswerPad({ answerStr, onDigit, onBackspace, onSubmit, d
     </div>
   );
 }
-
-const keyBtnStyle: React.CSSProperties = {
-  height: 62,
-  borderRadius: 14,
-  border: "1px solid rgba(0,0,0,0.16)",
-  background: "#fff",
-  fontSize: "1.5rem",
-  fontWeight: 900,
-  cursor: "pointer",
-  userSelect: "none",
-};

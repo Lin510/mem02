@@ -3,17 +3,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AnswerPad from "./AnswerPad";
 
-type Operation = "add" | "sub" | "mul";
+type Operation = "add" | "sub" | "mul" | "div";
 
 type Props = {
   grade: 0 | 2;
   operation: Operation;
   maxFactor?: number; // for multiplication tests in grade 2
+  embedded?: boolean;
 };
 
 type QA = { a: number; b: number; answer: number | null; correct: boolean | null };
 
-export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) {
+export default function TestFulger({ grade, operation, maxFactor = 10, embedded = false }: Props) {
   const [started, setStarted] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -43,13 +44,14 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
   const maxLen = useMemo(() => {
     // Grade 0: 1..10 add/sub (results <= 10), Grade 2 add/sub up to 20, mul up to 10*20 etc.
     // 3 digits is safe for your current ranges.
-    if (operation === "mul") return 3;
+    if (operation === "mul" || operation === "div") return 3;
     return grade === 0 ? 2 : 2;
   }, [grade, operation]);
 
   const computeAnswer = useCallback((a: number, b: number) => {
     if (operation === "add") return a + b;
     if (operation === "sub") return a - b;
+    if (operation === "div") return Math.floor(a / b);
     return a * b;
   }, [operation]);
 
@@ -149,19 +151,32 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
       if (operation === "add") {
         a = randomInt(1, selectedMax);
         b = randomInt(1, selectedMax);
-      } else {
-        // multiplication
+      } else if (operation === "mul" || operation === "div") {
+        // multiplication and division
         let other = randomInt(1, 10);
         if (other === selectedMax) {
           other = other === 10 ? randomInt(1, 9) : randomInt(2, 10);
           if (other === selectedMax) other = (selectedMax === 10 ? 9 : selectedMax + 1);
         }
-        if (Math.random() < 0.5) {
-          a = selectedMax;
-          b = other;
+        if (operation === "div") {
+          // For division: generate (a * b) / a = b
+          // So we store the product as 'a' and divisor as 'b'
+          if (Math.random() < 0.5) {
+            a = selectedMax * other;  // product
+            b = selectedMax;          // divisor
+          } else {
+            a = other * selectedMax;  // product
+            b = other;                // divisor
+          }
         } else {
-          a = other;
-          b = selectedMax;
+          // multiplication
+          if (Math.random() < 0.5) {
+            a = selectedMax;
+            b = other;
+          } else {
+            a = other;
+            b = selectedMax;
+          }
         }
       }
 
@@ -287,45 +302,32 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
 
   const current = started && questions.length ? questions[idx] : null;
 
-  const symbol = operation === "add" ? "+" : operation === "sub" ? "-" : "×";
+  const symbol = operation === "add" ? "+" : operation === "sub" ? "-" : operation === "div" ? "÷" : "×";
 
   const correctCount = useMemo(() => questions.filter((q) => q.correct === true).length, [questions]);
   const totalTime = startedAt && finishedAt ? Math.round((finishedAt - startedAt) / 1000) : null;
 
   return (
-    <div style={{ maxWidth: 980, margin: "0 auto", padding: "16px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <h2 style={{ margin: 0, fontSize: "1.4rem" }}>Test Fulger</h2>
+    <div className={embedded ? "w-full" : "mx-auto w-full max-w-[980px] p-4"}>
+      <div className={embedded ? "flex items-center justify-start gap-2" : "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"}>
+        {!embedded && <h2 className="m-0 text-[1.4rem] font-extrabold">Test Fulger</h2>}
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className={embedded ? "flex gap-2" : "flex gap-2"}>
           {!started && (
             <button
               onClick={start}
-              style={{
-                padding: "10px 14px",
-                borderRadius: 10,
-                border: "1px solid #111",
-                background: "#111",
-                color: "#fff",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
+              className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm ring-1 ring-black/5 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              type="button"
             >
               Start
             </button>
           )}
+
           {started && !done && (
             <button
               onClick={reset}
-              style={{
-                padding: "10px 14px",
-                borderRadius: 10,
-                border: "1px solid #111",
-                background: "#fff",
-                color: "#111",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
+              className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-slate-900 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              type="button"
             >
               Reset
             </button>
@@ -334,14 +336,14 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
       </div>
 
       {!started && (
-        <div style={{ marginTop: 10 }}>
-          <div style={{ marginBottom: 12, textAlign: "left" }}>
-            <div style={{ marginBottom: 8, fontWeight: 700, fontSize: 14 }}>
-              {operation === "mul" ? "Alege tabelul de înmulțire:" : operation === "add" ? "Alege limita termenilor:" : "Alege limita numerelor:"}
+        <div className="mt-2.5">
+          <div className="mb-3 text-left">
+            <div className="mb-2 text-sm font-bold">
+              {operation === "mul" ? "Alege tabelul de înmulțire:" : operation === "div" ? "Alege tabelul de împărțire:" : operation === "add" ? "Alege limita termenilor:" : "Alege limita numerelor:"}
             </div>
             {(operation === "add" && grade === 2) || operation === "sub" ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-2">
                   {Array.from({ length: 10 }).map((_, i) => {
                     const v = i + 1;
                     const isSelected = selectedMax === v;
@@ -349,23 +351,17 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
                       <button
                         key={v}
                         onClick={() => setSelectedMax(v)}
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 8,
-                          border: isSelected ? "2px solid #222" : "1px solid #bbb",
-                          background: isSelected ? "#222" : "#fff",
-                          color: isSelected ? "#fff" : "#000",
-                          fontWeight: 800,
-                          cursor: "pointer",
-                        }}
+                        className={`h-9 w-9 rounded-xl text-sm font-extrabold shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+                          isSelected ? "bg-slate-900 text-white ring-black/10" : "bg-white text-slate-900 ring-slate-200 hover:bg-slate-50"
+                        }`}
+                        type="button"
                       >
                         {v}
                       </button>
                     );
                   })}
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div className="flex flex-wrap gap-2">
                   {Array.from({ length: 10 }).map((_, i) => {
                     const v = i + 11;
                     const isSelected = selectedMax === v;
@@ -373,16 +369,10 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
                       <button
                         key={v}
                         onClick={() => setSelectedMax(v)}
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 8,
-                          border: isSelected ? "2px solid #222" : "1px solid #bbb",
-                          background: isSelected ? "#222" : "#fff",
-                          color: isSelected ? "#fff" : "#000",
-                          fontWeight: 800,
-                          cursor: "pointer",
-                        }}
+                        className={`h-9 w-9 rounded-xl text-sm font-extrabold shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+                          isSelected ? "bg-slate-900 text-white ring-black/10" : "bg-white text-slate-900 ring-slate-200 hover:bg-slate-50"
+                        }`}
+                        type="button"
                       >
                         {v}
                       </button>
@@ -391,7 +381,7 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
                 </div>
               </div>
             ) : (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="flex flex-wrap gap-2">
                 {Array.from({ length: operation === "add" && grade === 0 ? 10 : Math.min(10, Math.max(1, Math.floor(maxFactor))) }).map((_, i) => {
                   const v = i + 1;
                   const isSelected = selectedMax === v;
@@ -399,16 +389,10 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
                     <button
                       key={v}
                       onClick={() => setSelectedMax(v)}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 8,
-                        border: isSelected ? "2px solid #222" : "1px solid #bbb",
-                        background: isSelected ? "#222" : "#fff",
-                        color: isSelected ? "#fff" : "#000",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                      }}
+                      className={`h-9 w-9 rounded-xl text-sm font-extrabold shadow-sm ring-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+                        isSelected ? "bg-slate-900 text-white ring-black/10" : "bg-white text-slate-900 ring-slate-200 hover:bg-slate-50"
+                      }`}
+                      type="button"
                     >
                       {v}
                     </button>
@@ -417,36 +401,29 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
               </div>
             )}
           </div>
-          <p style={{ opacity: 0.75, marginTop: 8 }}>
+          <p className="mt-2 text-sm text-slate-600">
             Răspunde rapid folosind keypad-ul de pe ecran.
           </p>
         </div>
       )}
 
       {started && current && !done && (
-        <div style={{ marginTop: 18, display: "flex", justifyContent: "center" }}>
+        <div className="mt-[18px] flex justify-center">
           {/* Question */}
           <div
-            style={{
-              border: "1px solid rgba(0,0,0,0.08)",
-              borderRadius: 14,
-              padding: 20,
-              background: "#fff",
-              maxWidth: 420,
-              width: "100%",
-            }}
+            className="w-full max-w-[460px] rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
           >
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ fontSize: "2.2rem", fontWeight: 800, letterSpacing: 0.5 }}>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+              <div className="break-words text-[1.8rem] font-extrabold leading-tight tracking-[0.5px] sm:text-[2.2rem]">
                 {current.a} {symbol} {current.b} =
               </div>
 
-              <div style={{ fontSize: "0.95rem", opacity: 0.65, fontWeight: 600 }}>
+              <div className="text-right text-[0.95rem] font-semibold text-slate-500">
                 {Math.min(idx + 1, total)}/{total}
               </div>
             </div>
 
-            <div style={{ marginTop: 14 }}>
+            <div className="mt-3.5">
               <AnswerPad
                 answerStr={answerStr}
                 onDigit={appendDigit}
@@ -461,93 +438,56 @@ export default function TestFulger({ grade, operation, maxFactor = 10 }: Props) 
 
       {/* Results */}
       {done && (
-        <div style={{ marginTop: 18, display: "flex", justifyContent: "center" }}>
-          <div
-            style={{
-              border: "1px solid rgba(0,0,0,0.08)",
-              borderRadius: 14,
-              padding: 16,
-              background: "#fff",
-              maxWidth: 560,
-              width: "100%",
-            }}
-          >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 900, fontSize: "1.1rem" }}>
-                    Rezultat: {correctCount}/{total}
-                  </div>
-                  {totalTime !== null && (
-                    <div style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
-                      Timp: {totalTime}s
-                    </div>
-                  )}
+        <div className="mt-[18px] flex justify-center">
+          <div className="w-full max-w-[640px] rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-[1.1rem] font-black">
+                  Rezultat: {correctCount}/{total}
                 </div>
-                <button
-                  onClick={start}
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    border: "1px solid #111",
-                    background: "#111",
-                    color: "#fff",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Reia
-                </button>
+                {totalTime !== null && (
+                  <div className="mt-1 text-sm text-slate-600">
+                    Timp: {totalTime}s
+                  </div>
+                )}
               </div>
+              <button
+                onClick={start}
+                className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm ring-1 ring-black/5 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                type="button"
+              >
+                Reia
+              </button>
+            </div>
 
-              <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-                {questions.map((q, i) => {
-                  const expected = computeAnswer(q.a, q.b);
-                  const ok = q.correct === true;
-                  const userAnswerDisplay = q.answer === null || Number.isNaN(q.answer) ? "—" : String(q.answer);
-                  const markStyle: React.CSSProperties = {
-                    width: 36,
-                    height: 28,
-                    borderRadius: 6,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 800,
-                    color: "#fff",
-                  };
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        background: "#fbfbfb",
-                        padding: "8px 10px",
-                        borderRadius: 8,
-                        border: "1px solid #eee",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700 }}>
-                          {q.a} {symbol} {q.b} = {expected}
-                        </div>
-                        <div style={{ fontSize: 14, color: "#333" }}>răspuns: {userAnswerDisplay}</div>
+            <div className="mt-3 grid gap-2">
+              {questions.map((q, i) => {
+                const expected = computeAnswer(q.a, q.b);
+                const ok = q.correct === true;
+                const userAnswerDisplay = q.answer === null || Number.isNaN(q.answer) ? "—" : String(q.answer);
+                return (
+                  <div key={i} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+                    <div>
+                      <div className="font-bold text-slate-900">
+                        {q.a} {symbol} {q.b} = {expected}
                       </div>
-
-                      <div style={{ marginLeft: 12 }}>
-                        {ok ? (
-                          <div style={{ ...markStyle, background: "#2ecc71" }}>✓</div>
-                        ) : (
-                          <div style={{ ...markStyle, background: "#e74c3c" }}>✕</div>
-                        )}
-                      </div>
+                      <div className="text-sm text-slate-600">răspuns: {userAnswerDisplay}</div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className="shrink-0">
+                      {ok ? (
+                        <div className="inline-flex h-7 w-9 items-center justify-center rounded-lg bg-emerald-500 text-sm font-extrabold text-white">✓</div>
+                      ) : (
+                        <div className="inline-flex h-7 w-9 items-center justify-center rounded-lg bg-rose-500 text-sm font-extrabold text-white">✕</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 }

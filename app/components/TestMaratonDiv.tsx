@@ -5,7 +5,7 @@ import AnswerPad from "./AnswerPad";
 
 type QA = { a: number; b: number; answer: number | null; correct: boolean | null };
 
-export default function TestMaratonMul() {
+export default function TestMaratonDiv() {
   const [open, setOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [done, setDone] = useState(false);
@@ -34,14 +34,19 @@ export default function TestMaratonMul() {
   }
 
   function generateQuestions(): QA[] {
-    // generate all 1..10 x 1..10 pairs (100 unique) and shuffle
+    // generate all exact divisions: dividend ÷ divisor with no remainder
+    // dividend: 1..100, divisor: 1..10
+    // Only include divisions where dividend % divisor === 0
     const pool: QA[] = [];
-    for (let a = 1; a <= 10; a++) {
-      for (let b = 1; b <= 10; b++) {
-        pool.push({ a, b, answer: null, correct: null });
+    for (let dividend = 1; dividend <= 100; dividend++) {
+      for (let divisor = 1; divisor <= 10; divisor++) {
+        if (dividend % divisor === 0) {
+          pool.push({ a: dividend, b: divisor, answer: null, correct: null });
+        }
       }
     }
-    return shuffle(pool).slice(0, total);
+    // Shuffle and pick 100 random questions
+    return shuffle(pool).slice(0, 100);
   }
 
   function resetAll() {
@@ -95,7 +100,7 @@ export default function TestMaratonMul() {
 
       setQuestions((currentQuestions) => {
         const current = currentQuestions[idx];
-        const expected = current.a * current.b;
+        const expected = Math.floor(current.a / current.b);
         const given = Number.parseInt(currentAnswer, 10);
 
         const updated = [...currentQuestions];
@@ -178,7 +183,7 @@ export default function TestMaratonMul() {
     <>
       <div className="flex items-center gap-2">
         <button onClick={() => setOpen(true)} className="rounded-xl border border-slate-900 bg-slate-900 px-3 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800">
-          Test 100 × (10 minute)
+          Test 100 ÷ (10 minute)
         </button>
       </div>
 
@@ -186,7 +191,7 @@ export default function TestMaratonMul() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4" onClick={() => setOpen(false)}>
           <div className="w-full max-w-[920px] max-h-[90vh] overflow-auto rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="m-0 text-[1.2rem] font-extrabold">Test 100: Înmulțiri 1–10</h2>
+              <h2 className="m-0 text-[1.2rem] font-extrabold">Test 100: Împărțiri 1–10</h2>
               <div className="flex flex-wrap gap-2">
                 {!started && (
                   <button onClick={start} className="rounded-xl border border-slate-900 bg-slate-900 px-3 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800">Start</button>
@@ -217,13 +222,13 @@ export default function TestMaratonMul() {
 
             <div className="mt-3">
               {!started && (
-                <p className="text-sm text-slate-600">Ai 10 minute pentru a rezolva 100 de înmulțiri (toate combinațiile 1×1 … 10×10). Folosește tastatura sau keypad-ul de pe ecran.</p>
+                <p className="text-sm text-slate-600">Ai 10 minute pentru a rezolva 100 de împărțiri (toate combinațiile de împărțiri 1÷1 … 100÷10). Folosește tastatura sau keypad-ul de pe ecran.</p>
               )}
 
               {started && !done && current && (
                 <div className="flex items-center justify-between gap-4">
                   <div className="text-[2.0rem] font-black sm:text-[2.2rem]">
-                    {current.a} × {current.b} =
+                    {current.a} ÷ {current.b} =
                   </div>
                   <div className="text-right">
                     <div className="text-sm text-slate-500">{idx + 1}/{total}</div>
@@ -286,14 +291,14 @@ export default function TestMaratonMul() {
 
                           <div style={{ marginTop: 8, display: "grid", gap: 8 }}>
                             {visible.map((q, i) => {
-                              const exp = q.a * q.b;
+                              const exp = Math.floor(q.a / q.b);
                               const user = q.answer === null ? "—" : String(q.answer);
                               const ok = q.correct === true;
                               const globalIndex = start + i;
                               return (
                                 <div key={globalIndex} style={{ display: "flex", justifyContent: "space-between", padding: 8, borderRadius: 8, background: "#fbfbfb", border: "1px solid #eee" }}>
                                   <div>
-                                    <div style={{ fontWeight: 700 }}>{q.a} × {q.b} = {exp}</div>
+                                    <div style={{ fontWeight: 700 }}>{q.a} ÷ {q.b} = {exp}</div>
                                     <div style={{ fontSize: 13, color: "#333" }}>răspuns: {user}</div>
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center" }}>{ok ? <div style={{ width: 36, height: 28, borderRadius: 6, background: "#2ecc71", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>✓</div> : <div style={{ width: 36, height: 28, borderRadius: 6, background: "#e74c3c", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>✕</div>}</div>

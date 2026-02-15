@@ -5,7 +5,12 @@
 // Keeps VSCode/tsserver from complaining about side-effect imports such as
 // `import './globals.scss'` (or `import './globals.css'`) in `app/layout.tsx`.
 
-declare module "*.css";
-declare module "*.scss";
+declare module "*.css" {
+	const content: string;
+	export default content;
+}
 
-export {};
+declare module "*.scss" {
+	const content: string;
+	export default content;
+}

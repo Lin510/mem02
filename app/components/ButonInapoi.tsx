@@ -22,18 +22,7 @@ export default function ButonInapoi({ href = "/" }: { href?: string }) {
   return (
     <button
       onClick={onClick}
-      style={{
-        display: "inline-block",
-        padding: "6px 10px",
-        borderRadius: 6,
-        border: "1px solid #222",
-        background: "#fff",
-        color: "#000",
-        textDecoration: "none",
-        fontWeight: 700,
-        marginRight: 12,
-        cursor: "pointer",
-      }}
+      className="inline-flex items-center justify-center rounded-md border border-[#222] bg-white px-2.5 py-1.5 font-bold text-black hover:bg-[#f7f7f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30"
     >
       ← Înapoi
     </button>
